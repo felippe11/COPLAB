@@ -1,0 +1,108 @@
+/* Estilos personalizados para o Sistema de Gestão de Pagamentos */
+
+/* Estilos gerais */
+body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+main {
+    flex: 1;
+}
+
+/* Estilos para cards */
+.card {
+    transition: transform 0.3s;
+    margin-bottom: 1.5rem;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* Estilos para o dashboard */
+.dashboard-card {
+    border-left: 4px solid #0d6efd;
+}
+
+.dashboard-card.card-success {
+    border-left-color: #198754;
+}
+
+.dashboard-card.card-warning {
+    border-left-color: #ffc107;
+}
+
+.dashboard-card.card-danger {
+    border-left-color: #dc3545;
+}
+
+.dashboard-icon {
+    font-size: 2.5rem;
+    opacity: 0.8;
+}
+
+/* Estilos para o ranking */
+.ranking-badge {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+.ranking-1 {
+    background-color: gold;
+    color: #212529;
+}
+
+.ranking-2 {
+    background-color: silver;
+    color: #212529;
+}
+
+.ranking-3 {
+    background-color: #cd7f32; /* Bronze */
+    color: white;
+}
+
+/* Estilos para formulários */
+.form-search {
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+/* Estilos para tabelas */
+.table-hover tbody tr:hover {
+    background-color: rgba(13, 110, 253, 0.1);
+}
+
+/* Estilos para paginação */
+.page-item.active .page-link {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+
+/* Estilos para botões de ação */
+.btn-action {
+    width: 38px;
+    height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    margin: 0 3px;
+}
+
+/* Estilos para modais */
+.modal-confirm .modal-header {
+    border-bottom: none;
+}
+
+.modal-confirm .modal-footer {
+    border-top: none;
+}

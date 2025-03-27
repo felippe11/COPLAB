@@ -1,0 +1,100 @@
+{% extends "layout.html" %}
+
+{% block title %}Adicionar Gasto - Sistema de Gestão de Pagamentos da Copa{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="display-5 mb-4">Adicionar Novo Gasto</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('admin_dashboard') }}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('admin_gastos') }}">Gastos</a></li>
+                <li class="breadcrumb-item active">Adicionar Gasto</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-plus-circle me-2"></i>
+                    Registrar Novo Gasto
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data" action="{{ url_for('admin_adicionar_gasto') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    
+                    <div class="mb-3">
+                        <label for="descricao" class="form-label">Descrição do Gasto</label>
+                        <input type="text" class="form-control" id="descricao" name="descricao" required
+                               placeholder="Ex: Compra de café, açúcar, biscoitos, etc.">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="valor" class="form-label">Valor (R$)</label>
+                        <div class="input-group">
+                            <span class="input-group-text">R$</span>
+                            <input type="text" class="form-control" id="valor" name="valor" required
+                                   placeholder="0,00">
+                        </div>
+                        <div class="form-text">Use ponto ou vírgula para separar os centavos.</div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="comprovante" class="form-label">Comprovante (opcional)</label>
+                        <input class="form-control" type="file" id="comprovante" name="comprovante" accept=".jpg,.jpeg,.png,.pdf">
+                        <div class="form-text">Formatos aceitos: JPG, PNG, PDF. Tamanho máximo: 16MB.</div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('admin_gastos') }}" class="btn btn-secondary me-md-2">
+                            <i class="fas fa-times me-1"></i> Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i> Registrar Gasto
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Máscara para o campo de valor
+    document.addEventListener('DOMContentLoaded', function() {
+        const valorInput = document.getElementById('valor');
+        if (valorInput) {
+            valorInput.addEventListener('input', function(e) {
+                let value = e.target.value;
+                
+                // Remove tudo exceto números e vírgula/ponto
+                value = value.replace(/[^\d.,]/g, '');
+                
+                // Substitui múltiplos pontos/vírgulas por um único
+                value = value.replace(/[.,]+/g, ',');
+                
+                // Limita a uma única vírgula
+                const parts = value.split(',');
+                if (parts.length > 2) {
+                    value = parts[0] + ',' + parts.slice(1).join('');
+                }
+                
+                // Limita os decimais a 2 dígitos
+                if (parts.length > 1 && parts[1].length > 2) {
+                    value = parts[0] + ',' + parts[1].substring(0, 2);
+                }
+                
+                e.target.value = value;
+            });
+        }
+    });
+</script>
+{% endblock %}

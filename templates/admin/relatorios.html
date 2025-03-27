@@ -1,0 +1,391 @@
+{% extends "layout.html" %}
+
+{% block title %}Relatórios e Estatísticas - Sistema de Gestão de Pagamentos da Copa{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <h1 class="display-5 mb-0">Relatórios e Estatísticas</h1>
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-left me-1"></i>Voltar ao Dashboard
+        </a>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <!-- Filtros -->
+    <div class="col-md-12">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-filter me-2"></i>
+                    Filtros
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="GET" action="{{ url_for('admin_relatorios') }}" class="row g-3">
+                    <div class="col-md-3">
+                        <label for="mes_inicio" class="form-label">Mês Inicial</label>
+                        <select class="form-select" id="mes_inicio" name="mes_inicio">
+                            {% for i in range(1, 13) %}
+                            <option value="{{ i }}" {% if filtros.mes_inicio == i %}selected{% endif %}>
+                                {{ i }} - {{ ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'][i-1] }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="ano_inicio" class="form-label">Ano Inicial</label>
+                        <select class="form-select" id="ano_inicio" name="ano_inicio">
+                            {% for ano in range(2023, 2031) %}
+                            <option value="{{ ano }}" {% if filtros.ano_inicio == ano %}selected{% endif %}>{{ ano }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="mes_fim" class="form-label">Mês Final</label>
+                        <select class="form-select" id="mes_fim" name="mes_fim">
+                            {% for i in range(1, 13) %}
+                            <option value="{{ i }}" {% if filtros.mes_fim == i %}selected{% endif %}>
+                                {{ i }} - {{ ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'][i-1] }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="ano_fim" class="form-label">Ano Final</label>
+                        <select class="form-select" id="ano_fim" name="ano_fim">
+                            {% for ano in range(2023, 2031) %}
+                            <option value="{{ ano }}" {% if filtros.ano_fim == ano %}selected{% endif %}>{{ ano }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="categoria" class="form-label">Categoria</label>
+                        <select class="form-select" id="categoria" name="categoria">
+                            <option value="" {% if not filtros.categoria %}selected{% endif %}>Todas as categorias</option>
+                            <option value="GRADUANDO" {% if filtros.categoria == 'GRADUANDO' %}selected{% endif %}>Graduando</option>
+                            <option value="MESTRANDO" {% if filtros.categoria == 'MESTRANDO' %}selected{% endif %}>Mestrando</option>
+                            <option value="DOUTORANDO" {% if filtros.categoria == 'DOUTORANDO' %}selected{% endif %}>Doutorando</option>
+                            <option value="PROFESSOR" {% if filtros.categoria == 'PROFESSOR' %}selected{% endif %}>Professor</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="status" class="form-label">Status de Pagamento</label>
+                        <select class="form-select" id="status" name="status">
+                            <option value="" {% if not filtros.status %}selected{% endif %}>Todos os status</option>
+                            <option value="PENDENTE" {% if filtros.status == 'PENDENTE' %}selected{% endif %}>Pendente</option>
+                            <option value="AGUARDANDO_VALIDACAO" {% if filtros.status == 'AGUARDANDO_VALIDACAO' %}selected{% endif %}>Aguardando Validação</option>
+                            <option value="VALIDADO" {% if filtros.status == 'VALIDADO' %}selected{% endif %}>Validado</option>
+                            <option value="REJEITADO" {% if filtros.status == 'REJEITADO' %}selected{% endif %}>Rejeitado</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-search me-1"></i> Aplicar Filtros
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Resumo Financeiro -->
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-pie me-2"></i>
+                    Resumo Financeiro
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <div class="card dashboard-card card-success h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="text-muted mb-1">Total Arrecadado</h6>
+                                        <h2 class="mb-0">R$ {{ "%.2f"|format(resumo.total_arrecadado) }}</h2>
+                                    </div>
+                                    <div class="dashboard-icon text-success">
+                                        <i class="fas fa-dollar-sign"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card dashboard-card card-warning h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="text-muted mb-1">Total Pendente</h6>
+                                        <h2 class="mb-0">R$ {{ "%.2f"|format(resumo.total_pendente) }}</h2>
+                                    </div>
+                                    <div class="dashboard-icon text-warning">
+                                        <i class="fas fa-hourglass-half"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card dashboard-card card-info h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="text-muted mb-1">Pagamentos Validados</h6>
+                                        <h2 class="mb-0">{{ resumo.pagamentos_validados }}</h2>
+                                    </div>
+                                    <div class="dashboard-icon text-info">
+                                        <i class="fas fa-check-circle"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card dashboard-card card-danger h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="text-muted mb-1">Pagamentos Pendentes</h6>
+                                        <h2 class="mb-0">{{ resumo.pagamentos_pendentes }}</h2>
+                                    </div>
+                                    <div class="dashboard-icon text-danger">
+                                        <i class="fas fa-exclamation-circle"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Estatísticas por Categoria -->
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-bar me-2"></i>
+                    Estatísticas por Categoria
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Categoria</th>
+                                <th>Integrantes</th>
+                                <th>Pagamentos</th>
+                                <th>Total (R$)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for categoria in estatisticas_categoria %}
+                            <tr>
+                                <td>{{ categoria.nome }}</td>
+                                <td>{{ categoria.integrantes }}</td>
+                                <td>{{ categoria.pagamentos }}</td>
+                                <td>R$ {{ "%.2f"|format(categoria.total) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot class="table-primary">
+                            <tr>
+                                <th>Total</th>
+                                <th>{{ resumo.total_integrantes }}</th>
+                                <th>{{ resumo.total_pagamentos }}</th>
+                                <th>R$ {{ "%.2f"|format(resumo.total_arrecadado) }}</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Lista de Pagamentos -->
+    <div class="col-md-12">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-list me-2"></i>
+                    Lista de Pagamentos
+                </h5>
+                <div>
+                    <a href="{{ url_for('admin_relatorios', formato='csv') }}?{{ request.query_string.decode() }}" class="btn btn-light btn-sm me-2">
+                        <i class="fas fa-file-csv me-1"></i> Exportar CSV
+                    </a>
+                    <a href="{{ url_for('admin_relatorios', formato='pdf') }}?{{ request.query_string.decode() }}" class="btn btn-light btn-sm">
+                        <i class="fas fa-file-pdf me-1"></i> Exportar PDF
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Filtros específicos para a tabela de pagamentos -->
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <form method="GET" action="{{ url_for('admin_relatorios') }}" class="row g-3">
+                            <div class="col-md-3">
+                                <label for="mes_filtro" class="form-label">Mês</label>
+                                <select class="form-select" id="mes_filtro" name="mes_filtro">
+                                    <option value="" {% if not filtros.mes_filtro %}selected{% endif %}>Todos os meses</option>
+                                    {% for i in range(1, 13) %}
+                                    <option value="{{ i }}" {% if filtros.mes_filtro == i %}selected{% endif %}>
+                                        {{ i }} - {{ ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'][i-1] }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="ano_filtro" class="form-label">Ano</label>
+                                <select class="form-select" id="ano_filtro" name="ano_filtro">
+                                    <option value="" {% if not filtros.ano_filtro %}selected{% endif %}>Todos os anos</option>
+                                    {% for ano in range(2023, 2031) %}
+                                    <option value="{{ ano }}" {% if filtros.ano_filtro == ano %}selected{% endif %}>{{ ano }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-3 d-flex align-items-end">
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="fas fa-filter me-1"></i> Filtrar Pagamentos
+                                </button>
+                            </div>
+                            <div class="col-md-3 d-flex align-items-end">
+                                <a href="{{ url_for('admin_relatorios') }}" class="btn btn-outline-secondary w-100">
+                                    <i class="fas fa-undo me-1"></i> Limpar Filtros
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                {% if pagamentos|length > 0 %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Integrante</th>
+                                <th>Categoria</th>
+                                <th>Mês/Ano</th>
+                                <th>Valor</th>
+                                <th>Status</th>
+                                <th>Data de Pagamento</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for pagamento in pagamentos %}
+                            <tr>
+                                <td>{{ pagamento.id }}</td>
+                                <td>{{ pagamento.integrante.nome }}</td>
+                                <td>{{ pagamento.integrante.categoria.value }}</td>
+                                <td>{{ pagamento.mes_referencia }}/{{ pagamento.ano_referencia }}</td>
+                                <td>R$ {{ "%.2f"|format(pagamento.valor) }}</td>
+                                <td>
+                                    {% if pagamento.status.value == 'Validado' %}
+                                    <span class="badge bg-success">{{ pagamento.status.value }}</span>
+                                    {% elif pagamento.status.value == 'Aguardando Validação' %}
+                                    <span class="badge bg-warning text-dark">{{ pagamento.status.value }}</span>
+                                    {% elif pagamento.status.value == 'Rejeitado' %}
+                                    <span class="badge bg-danger">{{ pagamento.status.value }}</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">{{ pagamento.status.value }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ pagamento.data_pagamento.strftime('%d/%m/%Y %H:%M') if pagamento.data_pagamento else '-' }}</td>
+                                <td>
+                                    {% if pagamento.comprovante_path %}
+                                    <a href="{{ url_for('uploaded_file', filename=pagamento.comprovante_path) }}" class="btn btn-sm btn-info btn-action" target="_blank" title="Ver Comprovante">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    {% endif %}
+                                    
+                                    <a href="{{ url_for('detalhes_integrante', integrante_id=pagamento.integrante.id) }}" class="btn btn-sm btn-primary btn-action" title="Ver Integrante">
+                                        <i class="fas fa-user"></i>
+                                    </a>
+                                    
+                                    {% if pagamento.status.value != 'Rejeitado' %}
+                                    <button type="button" class="btn btn-sm btn-danger btn-action" title="Rejeitar Pagamento" data-bs-toggle="modal" data-bs-target="#rejeitar-modal-{{ pagamento.id }}">
+                                        <i class="fas fa-times-circle"></i>
+                                    </button>
+                                    
+                                    <!-- Modal de Rejeição -->
+                                    <div class="modal fade" id="rejeitar-modal-{{ pagamento.id }}" tabindex="-1" aria-labelledby="rejeitar-modal-label-{{ pagamento.id }}" aria-hidden="true">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <div class="modal-header bg-danger text-white">
+                                                    <h5 class="modal-title" id="rejeitar-modal-label-{{ pagamento.id }}">Rejeitar Pagamento</h5>
+                                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                                                </div>
+                                                <form action="{{ url_for('admin_rejeitar_pagamento', pagamento_id=pagamento.id) }}" method="POST">
+                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                    <div class="modal-body">
+                                                        <p>Tem certeza que deseja rejeitar o pagamento de <strong>{{ pagamento.integrante.nome }}</strong> referente a {{ pagamento.mes_referencia }}/{{ pagamento.ano_referencia }}?</p>
+                                                        <div class="mb-3">
+                                                            <label for="observacao-{{ pagamento.id }}" class="form-label">Motivo da rejeição:</label>
+                                                            <textarea class="form-control" id="observacao-{{ pagamento.id }}" name="observacao" rows="3" required></textarea>
+                                                        </div>
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                                        <button type="submit" class="btn btn-danger">Rejeitar Pagamento</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Paginação -->
+                {% if paginas > 1 %}
+                <nav aria-label="Navegação de páginas" class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        <li class="page-item {% if pagina == 1 %}disabled{% endif %}">
+                            <a class="page-link" href="{{ url_for('admin_relatorios', pagina=pagina-1) }}{% if request.query_string %}&{{ request.query_string.decode() }}{% endif %}">
+                                <i class="fas fa-chevron-left"></i>
+                            </a>
+                        </li>
+                        
+                        {% for p in range(1, paginas + 1) %}
+                        <li class="page-item {% if p == pagina %}active{% endif %}">
+                            <a class="page-link" href="{{ url_for('admin_relatorios', pagina=p) }}{% if request.query_string %}&{{ request.query_string.decode() }}{% endif %}">{{ p }}</a>
+                        </li>
+                        {% endfor %}
+                        
+                        <li class="page-item {% if pagina == paginas %}disabled{% endif %}">
+                            <a class="page-link" href="{{ url_for('admin_relatorios', pagina=pagina+1) }}{% if request.query_string %}&{{ request.query_string.decode() }}{% endif %}">
+                                <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+                {% endif %}
+                
+                {% else %}
+                <div class="alert alert-info mb-0">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Não foram encontrados pagamentos com os filtros selecionados.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,230 @@
+{% extends "layout.html" %}
+
+{% block title %}Gerenciamento de Ranking - Sistema de Gestão de Pagamentos da Copa{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <h1 class="display-5 mb-0">Gerenciamento de Ranking</h1>
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-left me-1"></i>Voltar ao Dashboard
+        </a>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <!-- Filtros -->
+    <div class="col-md-12">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-filter me-2"></i>
+                    Selecionar Mês/Ano
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="GET" action="{{ url_for('admin_ranking') }}" class="row g-3">
+                    <div class="col-md-4">
+                        <label for="mes" class="form-label">Mês</label>
+                        <select class="form-select" id="mes" name="mes">
+                            {% for i in range(1, 13) %}
+                            <option value="{{ i }}" {% if mes_selecionado == i %}selected{% endif %}>
+                                {{ i }} - {{ ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'][i-1] }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="ano" class="form-label">Ano</label>
+                        <select class="form-select" id="ano" name="ano">
+                            {% for ano in range(2023, 2031) %}
+                            <option value="{{ ano }}" {% if ano_selecionado == ano %}selected{% endif %}>{{ ano }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-search me-1"></i> Visualizar Ranking
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Ranking do Mês -->
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-trophy me-2"></i>
+                    Ranking de Pagamentos - {{ mes_selecionado }}/{{ ano_selecionado }}
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if ranking|length > 0 %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th width="80">Posição</th>
+                                <th>Integrante</th>
+                                <th>Categoria</th>
+                                <th>Data de Pagamento</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in ranking %}
+                            <tr>
+                                <td>
+                                    <div class="ranking-badge {% if item.posicao <= 3 %}ranking-{{ item.posicao }}{% endif %}">{{ item.posicao }}</div>
+                                </td>
+                                <td>{{ item.integrante.nome }}</td>
+                                <td>{{ item.integrante.categoria.value }}</td>
+                                <td>{{ item.data_pagamento.strftime('%d/%m/%Y %H:%M') }}</td>
+                                <td>
+                                    <a href="{{ url_for('detalhes_integrante', integrante_id=item.integrante.id) }}" class="btn btn-sm btn-info btn-action" title="Ver Detalhes">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    {% if item.posicao <= 3 and not item.premiado %}
+                                    <button class="btn btn-sm btn-success btn-action" title="Registrar Premiação" 
+                                            data-bs-toggle="modal" data-bs-target="#premiacaoModal"
+                                            data-integrante-id="{{ item.integrante.id }}"
+                                            data-integrante-nome="{{ item.integrante.nome }}"
+                                            data-posicao="{{ item.posicao }}"
+                                            data-mes="{{ mes_selecionado }}"
+                                            data-ano="{{ ano_selecionado }}">
+                                        <i class="fas fa-award"></i>
+                                    </button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info mb-0">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Não há pagamentos registrados para o período selecionado.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Premiações Registradas -->
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-award me-2"></i>
+                    Premiações Registradas
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if premiacoes|length > 0 %}
+                <div class="list-group">
+                    {% for premiacao in premiacoes %}
+                    <div class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between align-items-center">
+                            <div>
+                                <div class="d-flex align-items-center">
+                                    <div class="ranking-badge ranking-{{ premiacao.posicao }} me-2">{{ premiacao.posicao }}</div>
+                                    <h6 class="mb-0">{{ premiacao.integrante.nome }}</h6>
+                                </div>
+                                <small class="text-muted">{{ premiacao.integrante.categoria.value }}</small>
+                            </div>
+                            <small class="text-muted">{{ premiacao.data_premiacao.strftime('%d/%m/%Y') }}</small>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="alert alert-info mb-0">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Não há premiações registradas para o período selecionado.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Registrar Premiação -->
+<div class="modal fade" id="premiacaoModal" tabindex="-1" aria-labelledby="premiacaoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="premiacaoModalLabel">
+                    <i class="fas fa-award me-2"></i>
+                    Registrar Premiação
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <p>Você está registrando uma premiação para:</p>
+                <div class="alert alert-info">
+                    <div class="d-flex align-items-center">
+                        <div class="ranking-badge ranking-1 me-3" id="posicao-premiacao">1</div>
+                        <div>
+                            <h5 class="alert-heading mb-1" id="nome-integrante-premiacao">Nome do Integrante</h5>
+                            <p class="mb-0">Mês/Ano: <span id="mes-ano-premiacao">01/2023</span></p>
+                        </div>
+                    </div>
+                </div>
+                <p class="text-muted">Esta ação registrará oficialmente a premiação para este integrante.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form id="form-premiacao" method="POST" action="">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="integrante_id" id="integrante-id-hidden">
+                    <input type="hidden" name="posicao" id="posicao-hidden">
+                    <input type="hidden" name="mes" id="mes-hidden">
+                    <input type="hidden" name="ano" id="ano-hidden">
+                    <button type="submit" class="btn btn-success">Registrar Premiação</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Configurar modal de premiação
+        const premiacaoModal = document.getElementById('premiacaoModal');
+        if (premiacaoModal) {
+            premiacaoModal.addEventListener('show.bs.modal', function(event) {
+                const button = event.relatedTarget;
+                const integranteId = button.getAttribute('data-integrante-id');
+                const integranteNome = button.getAttribute('data-integrante-nome');
+                const posicao = button.getAttribute('data-posicao');
+                const mes = button.getAttribute('data-mes');
+                const ano = button.getAttribute('data-ano');
+                
+                // Atualizar texto e formulário
+                document.getElementById('nome-integrante-premiacao').textContent = integranteNome;
+                document.getElementById('posicao-premiacao').textContent = posicao;
+                document.getElementById('posicao-premiacao').className = `ranking-badge ranking-${posicao} me-3`;
+                document.getElementById('mes-ano-premiacao').textContent = `${mes}/${ano}`;
+                
+                // Atualizar campos ocultos
+                document.getElementById('integrante-id-hidden').value = integranteId;
+                document.getElementById('posicao-hidden').value = posicao;
+                document.getElementById('mes-hidden').value = mes;
+                document.getElementById('ano-hidden').value = ano;
+                
+                // Atualizar action do formulário
+                const form = document.getElementById('form-premiacao');
+                form.action = `/admin/registrar_premiacao`;
+            });
+        }
+    });
+</script>
+{% endblock %}

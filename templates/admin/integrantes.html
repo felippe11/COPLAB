@@ -1,0 +1,329 @@
+{% extends "layout.html" %}
+
+{% block title %}Gerenciamento de Integrantes - Sistema de Gestão de Pagamentos da Copa{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <h1 class="display-5 mb-0">Gerenciamento de Integrantes</h1>
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-left me-1"></i>Voltar ao Dashboard
+        </a>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-users me-2"></i>
+                    Lista de Integrantes
+                </h5>
+                <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#novoIntegranteModal">
+                    <i class="fas fa-plus me-1"></i> Novo Integrante
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nome</th>
+                                <th>Categoria</th>
+                                <th>Valor Mensal</th>
+                                <th>Data de Cadastro</th>
+                                <th>Status</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for integrante in integrantes %}
+                            <tr>
+                                <td>{{ integrante.id }}</td>
+                                <td>{{ integrante.nome }}</td>
+                                <td>{{ integrante.categoria.value }}</td>
+                                <td>R$ {{ "%.2f"|format(integrante.valor_mensal) }}</td>
+                                <td>{{ integrante.data_cadastro.strftime('%d/%m/%Y') }}</td>
+                                <td>
+                                    {% if integrante.ativo %}
+                                    <span class="badge bg-success">Ativo</span>
+                                    {% else %}
+                                    <span class="badge bg-danger">Inativo</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('detalhes_integrante', integrante_id=integrante.id) }}" class="btn btn-sm btn-info btn-action" title="Ver Detalhes">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <button class="btn btn-sm btn-primary btn-action" title="Editar Integrante" 
+                                            data-bs-toggle="modal" data-bs-target="#editarIntegranteModal"
+                                            data-id="{{ integrante.id }}"
+                                            data-nome="{{ integrante.nome }}"
+                                            data-categoria="{{ integrante.categoria.name }}">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    {% if integrante.ativo %}
+                                    <button class="btn btn-sm btn-danger btn-action" title="Desativar Integrante" 
+                                            data-bs-toggle="modal" data-bs-target="#desativarIntegranteModal"
+                                            data-id="{{ integrante.id }}"
+                                            data-nome="{{ integrante.nome }}">
+                                        <i class="fas fa-user-slash"></i>
+                                    </button>
+                                    {% else %}
+                                    <button class="btn btn-sm btn-success btn-action" title="Ativar Integrante" 
+                                            data-bs-toggle="modal" data-bs-target="#ativarIntegranteModal"
+                                            data-id="{{ integrante.id }}"
+                                            data-nome="{{ integrante.nome }}">
+                                        <i class="fas fa-user-check"></i>
+                                    </button>
+                                    {% endif %}
+                                    <button class="btn btn-sm btn-danger btn-action" title="Excluir Integrante" 
+                                            data-bs-toggle="modal" data-bs-target="#excluirIntegranteModal"
+                                            data-id="{{ integrante.id }}"
+                                            data-nome="{{ integrante.nome }}">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Novo Integrante -->
+<div class="modal fade" id="novoIntegranteModal" tabindex="-1" aria-labelledby="novoIntegranteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="novoIntegranteModalLabel">
+                    <i class="fas fa-user-plus me-2"></i>
+                    Novo Integrante
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <form id="form-novo-integrante" method="POST" action="{{ url_for('admin_adicionar_integrante') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    
+                    <div class="mb-3">
+                        <label for="nome" class="form-label">Nome Completo</label>
+                        <input type="text" class="form-control" id="nome" name="nome" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="categoria" class="form-label">Categoria</label>
+                        <select class="form-select" id="categoria" name="categoria" required>
+                            <option value="" disabled selected>Selecione uma categoria</option>
+                            {% for categoria in categorias %}
+                            <option value="{{ categoria.name }}">{{ categoria.value }} - R$ {{ "%.2f"|format(valores_categoria[categoria]) }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" form="form-novo-integrante" class="btn btn-primary">Cadastrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Editar Integrante -->
+<div class="modal fade" id="editarIntegranteModal" tabindex="-1" aria-labelledby="editarIntegranteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="editarIntegranteModalLabel">
+                    <i class="fas fa-user-edit me-2"></i>
+                    Editar Integrante
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <form id="form-editar-integrante" method="POST" action="">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    
+                    <div class="mb-3">
+                        <label for="edit-nome" class="form-label">Nome Completo</label>
+                        <input type="text" class="form-control" id="edit-nome" name="nome" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="edit-categoria" class="form-label">Categoria</label>
+                        <select class="form-select" id="edit-categoria" name="categoria" required>
+                            {% for categoria in categorias %}
+                            <option value="{{ categoria.name }}">{{ categoria.value }} - R$ {{ "%.2f"|format(valores_categoria[categoria]) }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" form="form-editar-integrante" class="btn btn-primary">Salvar Alterações</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Desativar Integrante -->
+<div class="modal fade" id="desativarIntegranteModal" tabindex="-1" aria-labelledby="desativarIntegranteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-confirm">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="desativarIntegranteModalLabel">
+                    <i class="fas fa-user-slash me-2"></i>
+                    Desativar Integrante
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <p>Tem certeza que deseja desativar o integrante <strong id="nome-desativar"></strong>?</p>
+                <p class="text-muted">O integrante será marcado como inativo e não poderá mais realizar pagamentos.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form id="form-desativar" method="POST" action="">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger">Desativar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Ativar Integrante -->
+<div class="modal fade" id="ativarIntegranteModal" tabindex="-1" aria-labelledby="ativarIntegranteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-confirm">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="ativarIntegranteModalLabel">
+                    <i class="fas fa-user-check me-2"></i>
+                    Ativar Integrante
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <p>Tem certeza que deseja ativar o integrante <strong id="nome-ativar"></strong>?</p>
+                <p class="text-muted">O integrante será marcado como ativo e poderá realizar pagamentos normalmente.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form id="form-ativar" method="POST" action="">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-success">Ativar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Excluir Integrante -->
+<div class="modal fade" id="excluirIntegranteModal" tabindex="-1" aria-labelledby="excluirIntegranteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-confirm">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="excluirIntegranteModalLabel">
+                    <i class="fas fa-trash me-2"></i>
+                    Excluir Integrante
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <p>Tem certeza que deseja <strong>excluir permanentemente</strong> o integrante <strong id="nome-excluir"></strong>?</p>
+                <p class="text-muted">Esta ação não pode ser desfeita e todos os dados relacionados a este integrante serão removidos.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form id="form-excluir" method="POST" action="">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger">Excluir Permanentemente</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Configurar modal de edição
+        const editarModal = document.getElementById('editarIntegranteModal');
+        if (editarModal) {
+            editarModal.addEventListener('show.bs.modal', function(event) {
+                const button = event.relatedTarget;
+                const id = button.getAttribute('data-id');
+                const nome = button.getAttribute('data-nome');
+                const categoria = button.getAttribute('data-categoria');
+                
+                // Atualizar formulário
+                document.getElementById('edit-nome').value = nome;
+                document.getElementById('edit-categoria').value = categoria;
+                
+                // Atualizar action do formulário
+                const form = document.getElementById('form-editar-integrante');
+                form.action = `/admin/integrantes/editar/${id}`;
+            });
+        }
+        
+        // Configurar modal de desativação
+        const desativarModal = document.getElementById('desativarIntegranteModal');
+        if (desativarModal) {
+            desativarModal.addEventListener('show.bs.modal', function(event) {
+                const button = event.relatedTarget;
+                const id = button.getAttribute('data-id');
+                const nome = button.getAttribute('data-nome');
+                
+                // Atualizar texto e formulário
+                document.getElementById('nome-desativar').textContent = nome;
+                
+                // Atualizar action do formulário
+                const form = document.getElementById('form-desativar');
+                form.action = `/admin/desativar_integrante/${id}`;
+            });
+        }
+        
+        // Configurar modal de ativação
+        const ativarModal = document.getElementById('ativarIntegranteModal');
+        if (ativarModal) {
+            ativarModal.addEventListener('show.bs.modal', function(event) {
+                const button = event.relatedTarget;
+                const id = button.getAttribute('data-id');
+                const nome = button.getAttribute('data-nome');
+                
+                // Atualizar texto e formulário
+                document.getElementById('nome-ativar').textContent = nome;
+                
+                // Atualizar action do formulário
+                const form = document.getElementById('form-ativar');
+                form.action = `/admin/ativar_integrante/${id}`;
+            });
+        }
+        
+        // Configurar modal de exclusão permanente
+        const excluirModal = document.getElementById('excluirIntegranteModal');
+        if (excluirModal) {
+            excluirModal.addEventListener('show.bs.modal', function(event) {
+                const button = event.relatedTarget;
+                const id = button.getAttribute('data-id');
+                const nome = button.getAttribute('data-nome');
+                
+                // Atualizar texto e formulário
+                document.getElementById('nome-excluir').textContent = nome;
+                
+                // Atualizar action do formulário
+                const form = document.getElementById('form-excluir');
+                form.action = `/admin/excluir_integrante/${id}`;
+            });
+        }
+    });
+</script>
+{% endblock %}

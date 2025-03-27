@@ -1,0 +1,63 @@
+{% extends "layout.html" %}
+
+{% block title %}Buscar Integrante - Sistema de Gestão de Pagamentos da Copa{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="display-5 mb-4">Buscar Integrante</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Início</a></li>
+                <li class="breadcrumb-item active">Buscar Integrante</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-search me-2"></i>
+                    Busque pelo nome do integrante
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="form-search mb-4">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-user"></i></span>
+                        <input type="text" id="termo-busca" class="form-control form-control-lg" 
+                               placeholder="Digite o nome do integrante..." 
+                               aria-label="Nome do integrante">
+                    </div>
+                    <div class="form-text text-muted">A busca é realizada automaticamente enquanto você digita.</div>
+                </div>
+                
+                <div id="resultados-busca" class="mt-4">
+                    <p class="text-muted text-center">Digite um nome para buscar...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12 text-center">
+        <a href="{{ url_for('index') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-1"></i> Voltar para o Dashboard
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Inicializar busca quando a página carregar
+    document.addEventListener('DOMContentLoaded', function() {
+        // Focar no campo de busca automaticamente
+        document.getElementById('termo-busca').focus();
+    });
+</script>
+{% endblock %}

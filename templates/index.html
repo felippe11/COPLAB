@@ -1,0 +1,155 @@
+{% extends "layout.html" %}
+
+{% block title %}Dashboard - Sistema de Gestão de Pagamentos da Copa{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12 d-flex align-items-center">
+        <img src="{{ url_for('static', filename='coplab.png') }}" alt="Logo" style="max-height: 80px; margin-right: 20px;">
+        <h1 class="display-5 mb-0">Dashboard da Copa do Laboratório</h1>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <!-- Card de Saldo em Caixa -->
+    <div class="col-md-4">
+        <div class="card dashboard-card card-success h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">Saldo em Caixa</h6>
+                        <h2 class="mb-0">R$ {{ "%.2f"|format(saldo_total) }}</h2>
+                        <small class="text-muted">
+                            Arrecadado: R$ {{ "%.2f"|format(total_arrecadado) }} | 
+                            Gastos: R$ {{ "%.2f"|format(total_gastos) }}
+                        </small>
+                    </div>
+                    <div class="dashboard-icon text-success">
+                        <i class="fas fa-dollar-sign"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Card de Mês Atual -->
+    <div class="col-md-4">
+        <div class="card dashboard-card card-info h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">Mês Atual</h6>
+                        <h2 class="mb-0">{{ mes_atual }}/{{ ano_atual }}</h2>
+                    </div>
+                    <div class="dashboard-icon text-info">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Card de Ação Rápida -->
+    <div class="col-md-4">
+        <div class="card dashboard-card card-primary h-100">
+            <div class="card-body">
+                <div class="d-flex flex-column">
+                    <h6 class="text-muted mb-3">Ações Rápidas</h6>
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('buscar_integrante') }}" class="btn btn-primary">
+                            <i class="fas fa-search me-2"></i>Buscar Integrante
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Ranking do Mês -->
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-trophy me-2"></i>
+                    Ranking de Pagamentos - {{ mes_atual }}/{{ ano_atual }}
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if ranking|length > 0 %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th width="80">Posição</th>
+                                <th>Integrante</th>
+                                <th>Categoria</th>
+                                <th>Data de Pagamento</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in ranking %}
+                            <tr>
+                                <td>
+                                    <div class="ranking-badge ranking-{{ item.posicao }}">{{ item.posicao }}</div>
+                                </td>
+                                <td>{{ item.integrante.nome }}</td>
+                                <td>{{ item.integrante.categoria.value }}</td>
+                                <td>{{ item.data_pagamento.strftime('%d/%m/%Y %H:%M') }}</td>
+                                <td>
+                                    <a href="{{ url_for('detalhes_integrante', integrante_id=item.integrante.id) }}" class="btn btn-sm btn-primary btn-action" title="Ver Detalhes">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info mb-0">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Ainda não há pagamentos registrados para este mês.
+                </div>
+                {% endif %}
+                
+                <div class="text-center mt-3">
+                    <a href="{{ url_for('ranking_completo') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-list me-1"></i> Ver Ranking Completo
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Informações do Sistema -->
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Informações do Sistema
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <h5><i class="fas fa-coffee me-2"></i>Copa do Laboratório</h5>
+                    <p>Sistema de gestão de pagamentos para a copa do laboratório.</p>
+                </div>
+                
+                <h6 class="mb-3">Valores por Categoria:</h6>
+                <ul class="list-group mb-3">
+                    {% for categoria in categorias %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        {{ categoria.value }}
+                        <span class="badge bg-primary rounded-pill">R$ {{ "%.2f"|format(valores_categoria[categoria]) }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

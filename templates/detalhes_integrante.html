@@ -1,0 +1,226 @@
+{% extends "layout.html" %}
+
+{% block title %}Detalhes do Integrante - Sistema de Gestão de Pagamentos da Copa{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="display-5 mb-4">{{ integrante.nome }}</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Início</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('buscar_integrante') }}">Buscar Integrante</a></li>
+                <li class="breadcrumb-item active">{{ integrante.nome }}</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Informações do Integrante -->
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-user me-2"></i>
+                    Informações do Integrante
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3 text-center">
+                    <div class="avatar-placeholder bg-light rounded-circle mx-auto mb-3" style="width: 120px; height: 120px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-user fa-4x text-primary"></i>
+                    </div>
+                </div>
+                
+                <ul class="list-group mb-4">
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <strong>Nome:</strong>
+                        <span>{{ integrante.nome }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <strong>Categoria:</strong>
+                        <span class="badge bg-primary">{{ integrante.categoria.value }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <strong>Valor Mensal:</strong>
+                        <span class="badge bg-success">R$ {{ "%.2f"|format(integrante.valor_mensal) }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <strong>Data de Cadastro:</strong>
+                        <span>{{ integrante.data_cadastro.strftime('%d/%m/%Y') }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <strong>Status:</strong>
+                        {% if integrante.ativo %}
+                        <span class="badge bg-success">Ativo</span>
+                        {% else %}
+                        <span class="badge bg-danger">Inativo</span>
+                        {% endif %}
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Pagamentos Pendentes -->
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-clock me-2"></i>
+                    Pagamentos Pendentes
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if pagamentos_pendentes|length > 0 %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Mês/Ano</th>
+                                <th>Valor</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for pagamento in pagamentos_pendentes %}
+                            <tr>
+                                <td>{{ pagamento.nome_mes }}/{{ pagamento.ano }}</td>
+                                <td>R$ {{ "%.2f"|format(integrante.valor_mensal) }}</td>
+                                <td>
+                                    <a href="{{ url_for('enviar_comprovante', integrante_id=integrante.id) }}?mes={{ pagamento.mes }}&ano={{ pagamento.ano }}" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-upload me-1"></i> Enviar Comprovante
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-success mb-0">
+                    <i class="fas fa-check-circle me-2"></i>
+                    Não há pagamentos pendentes para este integrante. Todos os pagamentos estão em dia!
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Histórico de Pagamentos -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-history me-2"></i>
+                    Histórico de Pagamentos
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if integrante.pagamentos|length > 0 %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Mês/Ano</th>
+                                <th>Valor</th>
+                                <th>Status</th>
+                                <th>Data de Pagamento</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for pagamento in integrante.pagamentos|sort(attribute='ano_referencia,mes_referencia', reverse=true) %}
+                            <tr>
+                                <td>{{ pagamento.mes_referencia }}/{{ pagamento.ano_referencia }}</td>
+                                <td>R$ {{ "%.2f"|format(pagamento.valor) }}</td>
+                                <td>
+                                    {% if pagamento.status.value == 'Validado' %}
+                                    <span class="badge bg-success">{{ pagamento.status.value }}</span>
+                                    {% elif pagamento.status.value == 'Aguardando Validação' %}
+                                    <span class="badge bg-warning text-dark">{{ pagamento.status.value }}</span>
+                                    {% elif pagamento.status.value == 'Rejeitado' %}
+                                    <span class="badge bg-danger">{{ pagamento.status.value }}</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">{{ pagamento.status.value }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ pagamento.data_pagamento.strftime('%d/%m/%Y %H:%M') if pagamento.data_pagamento else '-' }}</td>
+                                <td>
+                                    {% if pagamento.comprovante_path %}
+                                    <a href="{{ url_for('uploaded_file', filename=pagamento.comprovante_path) }}" class="btn btn-sm btn-info btn-action" target="_blank" title="Ver Comprovante">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    {% endif %}
+                                    
+                                    {% if pagamento.status.value == 'Rejeitado' and pagamento.observacao %}
+                                    <button class="btn btn-sm btn-warning btn-action" title="Ver Motivo da Rejeição" 
+                                            data-bs-toggle="modal" data-bs-target="#motivoRejeicaoModal"
+                                            data-observacao="{{ pagamento.observacao }}">
+                                        <i class="fas fa-exclamation-circle"></i>
+                                    </button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info mb-0">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Não há histórico de pagamentos para este integrante.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12 text-center">
+        <a href="{{ url_for('buscar_integrante') }}" class="btn btn-secondary me-2">
+            <i class="fas fa-arrow-left me-1"></i> Voltar para Busca
+        </a>
+        <a href="{{ url_for('index') }}" class="btn btn-primary">
+            <i class="fas fa-home me-1"></i> Ir para Dashboard
+        </a>
+    </div>
+</div>
+
+<!-- Modal para Motivo de Rejeição -->
+<div class="modal fade" id="motivoRejeicaoModal" tabindex="-1" aria-labelledby="motivoRejeicaoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title" id="motivoRejeicaoModalLabel">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Motivo da Rejeição
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <p id="observacao-texto"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Configurar modal de motivo de rejeição
+    document.addEventListener('DOMContentLoaded', function() {
+        const motivoModal = document.getElementById('motivoRejeicaoModal');
+        if (motivoModal) {
+            motivoModal.addEventListener('show.bs.modal', function(event) {
+                const button = event.relatedTarget;
+                const observacao = button.getAttribute('data-observacao');
+                document.getElementById('observacao-texto').textContent = observacao;
+            });
+        }
+    });
+</script>
+{% endblock %}

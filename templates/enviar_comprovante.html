@@ -1,0 +1,86 @@
+{% extends "layout.html" %}
+
+{% block title %}Enviar Comprovante - Sistema de Gestão de Pagamentos da Copa{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="display-5 mb-4">Enviar Comprovante de Pagamento</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Início</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('detalhes_integrante', integrante_id=integrante.id) }}">{{ integrante.nome }}</a></li>
+                <li class="breadcrumb-item active">Enviar Comprovante</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-upload me-2"></i>
+                    Envio de Comprovante
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info mb-4">
+                    <div class="d-flex">
+                        <div class="me-3">
+                            <i class="fas fa-info-circle fa-2x"></i>
+                        </div>
+                        <div>
+                            <h5 class="alert-heading">Informações do Pagamento</h5>
+                            <p class="mb-0">Integrante: <strong>{{ integrante.nome }}</strong></p>
+                            <p class="mb-0">Categoria: <strong>{{ integrante.categoria.value }}</strong></p>
+                            <p class="mb-0">Valor: <strong>R$ {{ "%.2f"|format(integrante.valor_mensal) }}</strong></p>
+                        </div>
+                    </div>
+                </div>
+                
+                <form method="POST" enctype="multipart/form-data" action="{{ url_for('enviar_comprovante', integrante_id=integrante.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="mes" class="form-label">Mês de Referência</label>
+                            <select class="form-select" id="mes" name="mes" required>
+                                <option value="" disabled {% if not request.args.get('mes') %}selected{% endif %}>Selecione o mês</option>
+                                {% for i in range(1, 13) %}
+                                <option value="{{ i }}" {% if request.args.get('mes')|int == i %}selected{% endif %}>{{ i }} - {{ ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'][i-1] }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="ano" class="form-label">Ano de Referência</label>
+                            <select class="form-select" id="ano" name="ano" required>
+                                <option value="" disabled {% if not request.args.get('ano') %}selected{% endif %}>Selecione o ano</option>
+                                {% for ano in range(2023, 2031) %}
+                                <option value="{{ ano }}" {% if request.args.get('ano')|int == ano %}selected{% endif %}>{{ ano }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="comprovante" class="form-label">Comprovante de Pagamento</label>
+                        <input class="form-control" type="file" id="comprovante" name="comprovante" accept=".jpg,.jpeg,.png,.pdf" required>
+                        <div class="form-text">Formatos aceitos: JPG, PNG, PDF. Tamanho máximo: 16MB.</div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('detalhes_integrante', integrante_id=integrante.id) }}" class="btn btn-secondary me-md-2">
+                            <i class="fas fa-times me-1"></i> Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane me-1"></i> Enviar Comprovante
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
