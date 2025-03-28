@@ -11,6 +11,10 @@ class CategoriaEnum(enum.Enum):
     POS_DOUTORANDO = "Pós-Doutorando"
     PROFESSOR = "Professor"
 
+# Enum para semestre
+class SemestreEnum(enum.Enum):
+    PRIMEIRO = "Primeiro Semestre"
+    SEGUNDO = "Segundo Semestre"
 
 # Dictionary of values per category
 VALORES_CATEGORIA = {
@@ -64,6 +68,7 @@ class Pagamento(db.Model):
     data_validacao = db.Column(db.DateTime, nullable=True)  # Data em que o pagamento foi validado
     comprovante_path = db.Column(db.String(255), nullable=True)  # Caminho para o arquivo de comprovante
     observacao = db.Column(db.Text, nullable=True)  # Observações sobre o pagamento
+    pontos = db.Column(db.Integer, nullable=True)  # Pontos para o ranking semestral
     
     def __repr__(self):
         return f'<Pagamento {self.integrante.nome} - {self.mes_referencia}/{self.ano_referencia} - {self.status.value}>'
@@ -103,6 +108,41 @@ class Premiacao(db.Model):
     def __repr__(self):
         return f'<Premiacao {self.integrante.nome} - {self.posicao}º lugar - {self.mes_referencia}/{self.ano_referencia}>'
 
+
+# Modelo para Ranking Semestral
+class RankingSemestral(db.Model):
+    __tablename__ = 'ranking_semestral'
+    __table_args__ = {'extend_existing': True}
+    
+    id = db.Column(db.Integer, primary_key=True)
+    integrante_id = db.Column(db.Integer, db.ForeignKey('integrantes.id'), nullable=False)
+    semestre = db.Column(db.Enum(SemestreEnum), nullable=False)
+    ano = db.Column(db.Integer, nullable=False)
+    pontos = db.Column(db.Integer, nullable=False, default=0)  # Pontos acumulados no semestre
+    
+    # Relacionamento com integrante
+    integrante = db.relationship('Integrante', backref='ranking_semestral')
+    
+    def __repr__(self):
+        return f'<RankingSemestral {self.integrante.nome} - {self.semestre.value}/{self.ano} - {self.pontos} pontos>'
+
+# Modelo para Premiação Semestral
+class PremiacaoSemestral(db.Model):
+    __tablename__ = 'premiacoes_semestrais'
+    __table_args__ = {'extend_existing': True}
+    
+    id = db.Column(db.Integer, primary_key=True)
+    integrante_id = db.Column(db.Integer, db.ForeignKey('integrantes.id'), nullable=False)
+    semestre = db.Column(db.Enum(SemestreEnum), nullable=False)
+    ano = db.Column(db.Integer, nullable=False)
+    posicao = db.Column(db.Integer, nullable=False)  # 1, 2, 3 para o pódio
+    data_premiacao = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relacionamento com integrante
+    integrante = db.relationship('Integrante', backref='premiacoes_semestrais')
+    
+    def __repr__(self):
+        return f'<PremiacaoSemestral {self.integrante.nome} - {self.posicao}º lugar - {self.semestre.value}/{self.ano}>'
 
 # Modelo para Gastos
 class Gasto(db.Model):

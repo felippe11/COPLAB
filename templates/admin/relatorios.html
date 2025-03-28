@@ -220,7 +220,7 @@
             <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">
                     <i class="fas fa-list me-2"></i>
-                    Lista de Pagamentos
+                    Entradas e Saídas
                 </h5>
                 <div>
                     <a href="{{ url_for('admin_relatorios', formato='csv') }}?{{ request.query_string.decode() }}" class="btn btn-light btn-sm me-2">
@@ -275,66 +275,79 @@
                         <thead>
                             <tr>
                                 <th>ID</th>
-                                <th>Integrante</th>
+                                <th>Tipo</th>
+                                <th>Descrição</th>
+                                <th>Responsável</th>
                                 <th>Categoria</th>
                                 <th>Mês/Ano</th>
                                 <th>Valor</th>
                                 <th>Status</th>
-                                <th>Data de Pagamento</th>
+                                <th>Data</th>
                                 <th>Ações</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {% for pagamento in pagamentos %}
-                            <tr>
-                                <td>{{ pagamento.id }}</td>
-                                <td>{{ pagamento.integrante.nome }}</td>
-                                <td>{{ pagamento.integrante.categoria.value }}</td>
-                                <td>{{ pagamento.mes_referencia }}/{{ pagamento.ano_referencia }}</td>
-                                <td>R$ {{ "%.2f"|format(pagamento.valor) }}</td>
+                            {% for transacao in transacoes %}
+                            <tr class="{% if transacao.tipo == 'entrada' %}table-success{% else %}table-danger{% endif %}">
+                                <td>{{ transacao.id }}</td>
                                 <td>
-                                    {% if pagamento.status.value == 'Validado' %}
-                                    <span class="badge bg-success">{{ pagamento.status.value }}</span>
-                                    {% elif pagamento.status.value == 'Aguardando Validação' %}
-                                    <span class="badge bg-warning text-dark">{{ pagamento.status.value }}</span>
-                                    {% elif pagamento.status.value == 'Rejeitado' %}
-                                    <span class="badge bg-danger">{{ pagamento.status.value }}</span>
+                                    {% if transacao.tipo == 'entrada' %}
+                                    <span class="badge bg-success">Entrada</span>
                                     {% else %}
-                                    <span class="badge bg-secondary">{{ pagamento.status.value }}</span>
+                                    <span class="badge bg-danger">Saída</span>
                                     {% endif %}
                                 </td>
-                                <td>{{ pagamento.data_pagamento.strftime('%d/%m/%Y %H:%M') if pagamento.data_pagamento else '-' }}</td>
+                                <td>{{ transacao.descricao }}</td>
+                                <td>{{ transacao.integrante }}</td>
+                                <td>{{ transacao.categoria }}</td>
+                                <td>{{ transacao.mes_ano }}</td>
+                                <td class="{% if transacao.tipo == 'entrada' %}text-success fw-bold{% else %}text-danger fw-bold{% endif %}">
+                                    R$ {{ "%.2f"|format(transacao.valor) }}
+                                </td>
                                 <td>
-                                    {% if pagamento.comprovante_path %}
-                                    <a href="{{ url_for('uploaded_file', filename=pagamento.comprovante_path) }}" class="btn btn-sm btn-info btn-action" target="_blank" title="Ver Comprovante">
+                                    {% if transacao.status == 'Validado' %}
+                                    <span class="badge bg-success">{{ transacao.status }}</span>
+                                    {% elif transacao.status == 'Aguardando Validação' %}
+                                    <span class="badge bg-warning text-dark">{{ transacao.status }}</span>
+                                    {% elif transacao.status == 'Rejeitado' %}
+                                    <span class="badge bg-danger">{{ transacao.status }}</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">{{ transacao.status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ transacao.data.strftime('%d/%m/%Y %H:%M') if transacao.data else '-' }}</td>
+                                <td>
+                                    {% if transacao.comprovante_path %}
+                                    <a href="{{ url_for('uploaded_file', filename=transacao.comprovante_path) }}" class="btn btn-sm btn-info btn-action" target="_blank" title="Ver Comprovante">
                                         <i class="fas fa-eye"></i>
                                     </a>
                                     {% endif %}
                                     
-                                    <a href="{{ url_for('detalhes_integrante', integrante_id=pagamento.integrante.id) }}" class="btn btn-sm btn-primary btn-action" title="Ver Integrante">
+                                    {% if transacao.tipo == 'entrada' %}
+                                    <a href="{{ url_for('detalhes_integrante', integrante_id=transacao.integrante_id) }}" class="btn btn-sm btn-primary btn-action" title="Ver Integrante">
                                         <i class="fas fa-user"></i>
                                     </a>
                                     
-                                    {% if pagamento.status.value != 'Rejeitado' %}
-                                    <button type="button" class="btn btn-sm btn-danger btn-action" title="Rejeitar Pagamento" data-bs-toggle="modal" data-bs-target="#rejeitar-modal-{{ pagamento.id }}">
+                                    {% if transacao.status != 'Rejeitado' %}
+                                    <button type="button" class="btn btn-sm btn-danger btn-action" title="Rejeitar Pagamento" data-bs-toggle="modal" data-bs-target="#rejeitar-modal-{{ transacao.pagamento_id }}">
                                         <i class="fas fa-times-circle"></i>
                                     </button>
                                     
                                     <!-- Modal de Rejeição -->
-                                    <div class="modal fade" id="rejeitar-modal-{{ pagamento.id }}" tabindex="-1" aria-labelledby="rejeitar-modal-label-{{ pagamento.id }}" aria-hidden="true">
+                                    <div class="modal fade" id="rejeitar-modal-{{ transacao.pagamento_id }}" tabindex="-1" aria-labelledby="rejeitar-modal-label-{{ transacao.pagamento_id }}" aria-hidden="true">
                                         <div class="modal-dialog">
                                             <div class="modal-content">
                                                 <div class="modal-header bg-danger text-white">
-                                                    <h5 class="modal-title" id="rejeitar-modal-label-{{ pagamento.id }}">Rejeitar Pagamento</h5>
+                                                    <h5 class="modal-title" id="rejeitar-modal-label-{{ transacao.pagamento_id }}">Rejeitar Pagamento</h5>
                                                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
                                                 </div>
-                                                <form action="{{ url_for('admin_rejeitar_pagamento', pagamento_id=pagamento.id) }}" method="POST">
+                                                <form action="{{ url_for('admin_rejeitar_pagamento', pagamento_id=transacao.pagamento_id) }}" method="POST">
                                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                                     <div class="modal-body">
-                                                        <p>Tem certeza que deseja rejeitar o pagamento de <strong>{{ pagamento.integrante.nome }}</strong> referente a {{ pagamento.mes_referencia }}/{{ pagamento.ano_referencia }}?</p>
+                                                        <p>Tem certeza que deseja rejeitar o pagamento de <strong>{{ transacao.integrante }}</strong> referente a {{ transacao.mes_ano }}?</p>
                                                         <div class="mb-3">
-                                                            <label for="observacao-{{ pagamento.id }}" class="form-label">Motivo da rejeição:</label>
-                                                            <textarea class="form-control" id="observacao-{{ pagamento.id }}" name="observacao" rows="3" required></textarea>
+                                                            <label for="observacao-{{ transacao.pagamento_id }}" class="form-label">Motivo da rejeição:</label>
+                                                            <textarea class="form-control" id="observacao-{{ transacao.pagamento_id }}" name="observacao" rows="3" required></textarea>
                                                         </div>
                                                     </div>
                                                     <div class="modal-footer">
@@ -345,6 +358,11 @@
                                             </div>
                                         </div>
                                     </div>
+                                    {% endif %}
+                                    {% else %}
+                                    <a href="{{ url_for('admin_gastos') }}" class="btn btn-sm btn-primary btn-action" title="Ver Gastos">
+                                        <i class="fas fa-receipt"></i>
+                                    </a>
                                     {% endif %}
                                 </td>
                             </tr>

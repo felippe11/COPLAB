@@ -1,14 +1,21 @@
-from flask import render_template, redirect, url_for, flash, request, jsonify, send_from_directory
+from flask import render_template, redirect, url_for, flash, request, jsonify, send_from_directory, make_response
 from extensions import db
 from utils import allowed_file
-from models import Integrante, Pagamento, Administrador, Premiacao, CategoriaEnum, StatusPagamentoEnum, VALORES_CATEGORIA, Gasto
+from models import Integrante, Pagamento, Administrador, Premiacao, CategoriaEnum, StatusPagamentoEnum, VALORES_CATEGORIA, Gasto, SemestreEnum, RankingSemestral, PremiacaoSemestral
 from datetime import datetime
 import os
 import uuid
+import csv
+import io
 from werkzeug.utils import secure_filename
 from werkzeug.security import check_password_hash
 import calendar
 import json
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.units import inch
 
 def register_routes(app):
 
@@ -68,9 +75,73 @@ def register_routes(app):
             ranking.append({
                 'posicao': i + 1,
                 'integrante': pagamento.integrante,
-                'data_pagamento': pagamento.data_pagamento
+                'data_pagamento': pagamento.data_pagamento,
+                'pontos': pagamento.pontos
             })
         
+        return ranking
+        
+    # Função para calcular pontos com base na data de pagamento
+    def calcular_pontos_pagamento(data_pagamento, mes, ano):
+        # Quanto mais cedo no mês o pagamento for realizado, maior a pontuação
+        # Dia 1 = 30 pontos, Dia 30 = 1 ponto
+        dia_pagamento = data_pagamento.day
+        dias_no_mes = calendar.monthrange(ano, mes)[1]
+        pontos = max(1, dias_no_mes - dia_pagamento + 1)
+        return pontos
+        
+    # Função para obter ranking semestral
+    def obter_ranking_semestral(semestre, ano, limite=None):
+        # Determinar qual semestre (1 = Jan-Jun, 2 = Jul-Dez)
+        if semestre == SemestreEnum.PRIMEIRO:
+            meses = range(1, 7)  # Janeiro a Junho
+        else:
+            meses = range(7, 13)  # Julho a Dezembro
+            
+        # Buscar todos os rankings semestrais
+        rankings = RankingSemestral.query.filter_by(
+            semestre=semestre,
+            ano=ano
+        ).order_by(RankingSemestral.pontos.desc()).all()
+        
+        # Criar lista de integrantes com suas posições
+        ranking_semestral = []
+        for i, ranking in enumerate(rankings[:limite] if limite else rankings):
+            ranking_semestral.append({
+                'posicao': i + 1,
+                'integrante': ranking.integrante,
+                'pontos': ranking.pontos
+            })
+            
+        return ranking_semestral
+        
+    # Função para atualizar o ranking semestral
+    def atualizar_ranking_semestral(integrante_id, mes, ano, pontos):
+        # Determinar o semestre com base no mês
+        if 1 <= mes <= 6:
+            semestre = SemestreEnum.PRIMEIRO
+        else:
+            semestre = SemestreEnum.SEGUNDO
+            
+        # Buscar ou criar registro de ranking semestral
+        ranking = RankingSemestral.query.filter_by(
+            integrante_id=integrante_id,
+            semestre=semestre,
+            ano=ano
+        ).first()
+        
+        if not ranking:
+            ranking = RankingSemestral(
+                integrante_id=integrante_id,
+                semestre=semestre,
+                ano=ano,
+                pontos=pontos
+            )
+            db.session.add(ranking)
+        else:
+            ranking.pontos += pontos
+            
+        db.session.commit()
         return ranking
 
     # Rota para busca de integrantes
@@ -439,6 +510,13 @@ def register_routes(app):
             mes = pagamento.mes_referencia
             ano = pagamento.ano_referencia
             
+            # Calcular pontos com base na data de pagamento
+            pontos = calcular_pontos_pagamento(pagamento.data_pagamento, mes, ano)
+            pagamento.pontos = pontos
+            
+            # Atualizar ranking semestral
+            atualizar_ranking_semestral(pagamento.integrante_id, mes, ano, pontos)
+            
             # Verificar se já existe premiação para este mês/ano
             premiacao_existente = Premiacao.query.filter_by(
                 mes_referencia=mes,
@@ -469,6 +547,244 @@ def register_routes(app):
     @app.route('/admin/relatorios')
     @admin_required
     def admin_relatorios():
+        # Verificar se é uma solicitação de exportação
+        formato = request.args.get('formato', '')
+        if formato in ['csv', 'pdf']:
+            # Obter parâmetros de filtro
+            mes_inicio = request.args.get('mes_inicio', datetime.now().month, type=int)
+            ano_inicio = request.args.get('ano_inicio', datetime.now().year, type=int)
+            mes_fim = request.args.get('mes_fim', datetime.now().month, type=int)
+            ano_fim = request.args.get('ano_fim', datetime.now().year, type=int)
+            categoria = request.args.get('categoria', '')
+            status = request.args.get('status', '')
+            
+            # Obter filtros específicos para a tabela de pagamentos
+            mes_filtro = request.args.get('mes_filtro', '', type=str)
+            ano_filtro = request.args.get('ano_filtro', '', type=str)
+            
+            # Iniciar consulta base para pagamentos
+            query = Pagamento.query
+            
+            # Aplicar filtros
+            if mes_inicio and ano_inicio and mes_fim and ano_fim:
+                # Converter datas para comparação
+                data_inicio = datetime(ano_inicio, mes_inicio, 1)
+                if mes_fim == 12:
+                    data_fim = datetime(ano_fim + 1, 1, 1)
+                else:
+                    data_fim = datetime(ano_fim, mes_fim + 1, 1)
+                
+                # Filtrar por período
+                query = query.filter(
+                    ((Pagamento.ano_referencia > ano_inicio) | 
+                    ((Pagamento.ano_referencia == ano_inicio) & (Pagamento.mes_referencia >= mes_inicio))) &
+                    ((Pagamento.ano_referencia < ano_fim) | 
+                    ((Pagamento.ano_referencia == ano_fim) & (Pagamento.mes_referencia <= mes_fim)))
+                )
+            
+            # Aplicar filtros específicos de mês e ano (filtros da tabela)
+            if mes_filtro:
+                query = query.filter(Pagamento.mes_referencia == int(mes_filtro))
+                
+            if ano_filtro:
+                query = query.filter(Pagamento.ano_referencia == int(ano_filtro))
+            
+            # Filtrar por categoria
+            if categoria:
+                try:
+                    categoria_enum = CategoriaEnum[categoria]
+                    query = query.join(Integrante).filter(Integrante.categoria == categoria_enum)
+                except:
+                    pass
+            
+            # Filtrar por status
+            if status:
+                try:
+                    status_enum = StatusPagamentoEnum[status]
+                    query = query.filter(Pagamento.status == status_enum)
+                except:
+                    pass
+            
+            # Obter todos os pagamentos (sem paginação)
+            pagamentos = query.order_by(Pagamento.ano_referencia.desc(), 
+                                    Pagamento.mes_referencia.desc()).all()
+            
+            # Obter gastos (saídas)
+            gastos_query = Gasto.query
+            
+            # Aplicar filtros de mês e ano para gastos
+            if mes_filtro or ano_filtro:
+                if mes_filtro:
+                    mes = int(mes_filtro)
+                    # Filtrar gastos pelo mês
+                    gastos_query = gastos_query.filter(db.extract('month', Gasto.data_gasto) == mes)
+                
+                if ano_filtro:
+                    ano = int(ano_filtro)
+                    # Filtrar gastos pelo ano
+                    gastos_query = gastos_query.filter(db.extract('year', Gasto.data_gasto) == ano)
+            
+            # Obter todos os gastos
+            gastos = gastos_query.order_by(Gasto.data_gasto.desc()).all()
+            
+            # Preparar lista combinada de transações (pagamentos e gastos)
+            transacoes = []
+            
+            # Adicionar pagamentos como entradas (valor positivo)
+            for p in pagamentos:
+                transacoes.append({
+                    'id': p.id,
+                    'tipo': 'entrada',
+                    'descricao': f'Pagamento de {p.integrante.nome}',
+                    'integrante': p.integrante.nome,
+                    'categoria': p.integrante.categoria.value,
+                    'mes_ano': f'{p.mes_referencia}/{p.ano_referencia}',
+                    'valor': p.valor,
+                    'status': p.status.value,
+                    'data': p.data_pagamento,
+                    'comprovante_path': p.comprovante_path,
+                    'integrante_id': p.integrante.id,
+                    'pagamento_id': p.id,
+                    'gasto_id': None
+                })
+            
+            # Adicionar gastos como saídas (valor negativo)
+            for g in gastos:
+                # Extrair mês e ano da data do gasto
+                mes = g.data_gasto.month
+                ano = g.data_gasto.year
+                
+                transacoes.append({
+                    'id': g.id,
+                    'tipo': 'saida',
+                    'descricao': g.descricao,
+                    'integrante': g.administrador.nome if g.administrador else 'N/A',
+                    'categoria': 'Gasto',
+                    'mes_ano': f'{mes}/{ano}',
+                    'valor': g.valor,
+                    'status': 'Validado',
+                    'data': g.data_gasto,
+                    'comprovante_path': g.comprovante_path,
+                    'integrante_id': None,
+                    'pagamento_id': None,
+                    'gasto_id': g.id
+                })
+            
+            # Ordenar transações por data (mais recentes primeiro)
+            transacoes.sort(key=lambda x: x['data'] if x['data'] else datetime.min, reverse=True)
+            
+            # Gerar nome do arquivo com base nos filtros
+            nome_arquivo = 'relatorio'
+            if mes_filtro and ano_filtro:
+                nome_arquivo = f'relatorio_{mes_filtro}_{ano_filtro}'
+            elif mes_filtro:
+                nome_arquivo = f'relatorio_mes_{mes_filtro}'
+            elif ano_filtro:
+                nome_arquivo = f'relatorio_ano_{ano_filtro}'
+            
+            # Exportar para CSV
+            if formato == 'csv':
+                output = io.StringIO()
+                writer = csv.writer(output)
+                
+                # Escrever cabeçalho
+                writer.writerow(['ID', 'Tipo', 'Descrição', 'Responsável', 'Categoria', 'Mês/Ano', 'Valor', 'Status', 'Data'])
+                
+                # Escrever dados
+                for t in transacoes:
+                    writer.writerow([
+                        t['id'],
+                        'Entrada' if t['tipo'] == 'entrada' else 'Saída',
+                        t['descricao'],
+                        t['integrante'],
+                        t['categoria'],
+                        t['mes_ano'],
+                        t['valor'],
+                        t['status'],
+                        t['data'].strftime('%d/%m/%Y %H:%M') if t['data'] else '-'
+                    ])
+                
+                # Criar resposta
+                output.seek(0)
+                response = make_response(output.getvalue())
+                response.headers['Content-Disposition'] = f'attachment; filename={nome_arquivo}.csv'
+                response.headers['Content-type'] = 'text/csv'
+                return response
+            
+            # Exportar para PDF
+            elif formato == 'pdf':
+                # Criar buffer para o PDF
+                buffer = io.BytesIO()
+                
+                # Configurar documento PDF
+                doc = SimpleDocTemplate(buffer, pagesize=letter)
+                styles = getSampleStyleSheet()
+                elements = []
+                
+                # Título do relatório
+                titulo = 'Relatório de Entradas e Saídas'
+                if mes_filtro and ano_filtro:
+                    mes_nome = calendar.month_name[int(mes_filtro)]
+                    titulo = f'Relatório de Entradas e Saídas - {mes_nome}/{ano_filtro}'
+                elif mes_filtro:
+                    mes_nome = calendar.month_name[int(mes_filtro)]
+                    titulo = f'Relatório de Entradas e Saídas - {mes_nome}'
+                elif ano_filtro:
+                    titulo = f'Relatório de Entradas e Saídas - {ano_filtro}'
+                
+                elements.append(Paragraph(titulo, styles['Heading1']))
+                elements.append(Spacer(1, 0.25*inch))
+                
+                # Dados da tabela
+                data = [['ID', 'Tipo', 'Descrição', 'Responsável', 'Categoria', 'Mês/Ano', 'Valor', 'Status', 'Data']]
+                
+                for t in transacoes:
+                    data.append([
+                        str(t['id']),
+                        'Entrada' if t['tipo'] == 'entrada' else 'Saída',
+                        t['descricao'],
+                        t['integrante'],
+                        t['categoria'],
+                        t['mes_ano'],
+                        f'R$ {t["valor"]:.2f}',
+                        t['status'],
+                        t['data'].strftime('%d/%m/%Y %H:%M') if t['data'] else '-'
+                    ])
+                
+                # Criar tabela
+                table = Table(data)
+                
+                # Estilo da tabela
+                style = TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                    ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                    ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+                    ('GRID', (0, 0), (-1, -1), 1, colors.black)
+                ])
+                
+                # Adicionar cores para diferenciar entradas e saídas
+                for i, row in enumerate(data[1:], 1):
+                    if row[1] == 'Entrada':
+                        style.add('BACKGROUND', (0, i), (-1, i), colors.lightgreen)
+                    else:  # Saída
+                        style.add('BACKGROUND', (0, i), (-1, i), colors.lightcoral)
+                
+                table.setStyle(style)
+                elements.append(table)
+                
+                # Construir PDF
+                doc.build(elements)
+                
+                # Preparar resposta
+                buffer.seek(0)
+                response = make_response(buffer.getvalue())
+                response.headers['Content-Disposition'] = f'attachment; filename={nome_arquivo}.pdf'
+                response.headers['Content-type'] = 'application/pdf'
+                return response
+        else:
             # Obter parâmetros de filtro
             mes_inicio = request.args.get('mes_inicio', datetime.now().month, type=int)
             ano_inicio = request.args.get('ano_inicio', datetime.now().year, type=int)
@@ -497,7 +813,7 @@ def register_routes(app):
             pagina = request.args.get('pagina', 1, type=int)
             por_pagina = 10
             
-            # Iniciar consulta base
+            # Iniciar consulta base para pagamentos
             query = Pagamento.query
             
             # Aplicar filtros
@@ -544,12 +860,33 @@ def register_routes(app):
             pagamentos = query.order_by(Pagamento.ano_referencia.desc(), 
                                     Pagamento.mes_referencia.desc()).paginate(
                 page=pagina, per_page=por_pagina, error_out=False)
+                
+            # Obter gastos (saídas)
+            gastos_query = Gasto.query
+            
+            # Aplicar filtros de mês e ano para gastos
+            if filtros['mes_filtro'] or filtros['ano_filtro']:
+                if filtros['mes_filtro']:
+                    mes = filtros['mes_filtro']
+                    # Filtrar gastos pelo mês
+                    gastos_query = gastos_query.filter(db.extract('month', Gasto.data_gasto) == mes)
+                
+                if filtros['ano_filtro']:
+                    ano = filtros['ano_filtro']
+                    # Filtrar gastos pelo ano
+                    gastos_query = gastos_query.filter(db.extract('year', Gasto.data_gasto) == ano)
+            
+            # Obter gastos paginados
+            gastos = gastos_query.order_by(Gasto.data_gasto.desc()).all()
             
             # Calcular resumo financeiro
             total_arrecadado = sum(p.valor for p in query.filter(Pagamento.status == StatusPagamentoEnum.VALIDADO).all())
             total_pendente = sum(p.valor for p in query.filter(Pagamento.status.in_([StatusPagamentoEnum.PENDENTE, StatusPagamentoEnum.AGUARDANDO_VALIDACAO])).all())
             pagamentos_validados = query.filter(Pagamento.status == StatusPagamentoEnum.VALIDADO).count()
             pagamentos_pendentes = query.filter(Pagamento.status.in_([StatusPagamentoEnum.PENDENTE, StatusPagamentoEnum.AGUARDANDO_VALIDACAO])).count()
+            
+            # Calcular total de gastos
+            total_gastos = sum(g.valor for g in gastos)
             
             # Estatísticas por categoria
             estatisticas_categoria = []
@@ -573,12 +910,60 @@ def register_routes(app):
                 'pagamentos_validados': pagamentos_validados,
                 'pagamentos_pendentes': pagamentos_pendentes,
                 'total_integrantes': Integrante.query.count(),
-                'total_pagamentos': query.count()
+                'total_pagamentos': query.count(),
+                'total_gastos': total_gastos
             }
+            
+            # Preparar lista combinada de transações (pagamentos e gastos)
+            transacoes = []
+            
+            # Adicionar pagamentos como entradas (valor positivo)
+            for p in pagamentos.items:
+                transacoes.append({
+                    'id': p.id,
+                    'tipo': 'entrada',
+                    'descricao': f'Pagamento de {p.integrante.nome}',
+                    'integrante': p.integrante.nome,
+                    'categoria': p.integrante.categoria.value,
+                    'mes_ano': f'{p.mes_referencia}/{p.ano_referencia}',
+                    'valor': p.valor,
+                    'status': p.status.value,
+                    'data': p.data_pagamento,
+                    'comprovante_path': p.comprovante_path,
+                    'integrante_id': p.integrante.id,
+                    'pagamento_id': p.id,
+                    'gasto_id': None
+                })
+            
+            # Adicionar gastos como saídas (valor negativo)
+            for g in gastos:
+                # Extrair mês e ano da data do gasto
+                mes = g.data_gasto.month
+                ano = g.data_gasto.year
+                
+                transacoes.append({
+                    'id': g.id,
+                    'tipo': 'saida',
+                    'descricao': g.descricao,
+                    'integrante': g.administrador.nome if g.administrador else 'N/A',
+                    'categoria': 'Gasto',
+                    'mes_ano': f'{mes}/{ano}',
+                    'valor': g.valor,
+                    'status': 'Validado',
+                    'data': g.data_gasto,
+                    'comprovante_path': g.comprovante_path,
+                    'integrante_id': None,
+                    'pagamento_id': None,
+                    'gasto_id': g.id
+                })
+            
+            # Ordenar transações por data (mais recentes primeiro)
+            transacoes.sort(key=lambda x: x['data'] if x['data'] else datetime.min, reverse=True)
             
             return render_template('admin/relatorios.html', 
                                 filtros=filtros,
                                 pagamentos=pagamentos.items,
+                                transacoes=transacoes,
                                 pagina=pagina,
                                 paginas=pagamentos.pages,
                                 resumo=resumo,
@@ -663,17 +1048,64 @@ def register_routes(app):
 
     @app.route('/ranking/completo')
     def ranking_completo():
-        # Get current month and year
+        # Obter mês e ano atual
         mes_atual = datetime.now().month
         ano_atual = datetime.now().year
         
-        # Get full ranking for current month
-        ranking = obter_ranking_mensal(mes_atual, ano_atual, limite=None)  # No limit to get all rankings
+        # Obter parâmetros da URL
+        mes_selecionado = request.args.get('mes', mes_atual, type=int)
+        ano_selecionado = request.args.get('ano', ano_atual, type=int)
         
-        return render_template('ranking_completo.html', 
+        # Get full ranking for selected month
+        ranking = obter_ranking_mensal(mes_selecionado, ano_selecionado, limite=None)  # No limit to get all rankings
+        
+        return render_template('ranking_completo.html',
                             ranking=ranking,
                             mes_atual=mes_atual, 
-                            ano_atual=ano_atual)
+                            ano_atual=ano_atual,
+                            mes_selecionado=mes_selecionado,
+                            ano_selecionado=ano_selecionado)
+
+    @app.route('/ranking/semestral')
+    def ranking_semestral():
+        # Obter ano atual
+        ano_atual = datetime.now().year
+        mes_atual = datetime.now().month
+        
+        # Determinar semestre atual
+        if 1 <= mes_atual <= 6:
+            semestre_atual = SemestreEnum.PRIMEIRO
+        else:
+            semestre_atual = SemestreEnum.SEGUNDO
+        
+        # Obter parâmetros da URL
+        semestre_selecionado_str = request.args.get('semestre', '')
+        if semestre_selecionado_str == 'primeiro':
+            semestre_selecionado = SemestreEnum.PRIMEIRO
+        elif semestre_selecionado_str == 'segundo':
+            semestre_selecionado = SemestreEnum.SEGUNDO
+        else:
+            semestre_selecionado = semestre_atual
+            
+        ano_selecionado = request.args.get('ano', ano_atual, type=int)
+        
+        # Obter ranking semestral
+        ranking = obter_ranking_semestral(semestre_selecionado, ano_selecionado)
+        
+        # Verificar se existe premiação semestral
+        premiacao = PremiacaoSemestral.query.filter_by(
+            semestre=semestre_selecionado,
+            ano=ano_selecionado,
+            posicao=1  # Primeiro lugar
+        ).first()
+        
+        return render_template('ranking_semestral.html',
+                            ranking=ranking,
+                            semestre_atual=semestre_atual,
+                            ano_atual=ano_atual,
+                            semestre_selecionado=semestre_selecionado,
+                            ano_selecionado=ano_selecionado,
+                            premiacao_existente=premiacao is not None)
 
     @app.route('/admin/ranking')
     @admin_required
@@ -682,20 +1114,67 @@ def register_routes(app):
         mes_atual = datetime.now().month
         ano_atual = datetime.now().year
         
-        # Obter ranking para o mês/ano atual
-        ranking = obter_ranking_mensal(mes_atual, ano_atual, limite=None)
+        # Obter parâmetros da URL
+        mes_selecionado = request.args.get('mes', mes_atual, type=int)
+        ano_selecionado = request.args.get('ano', ano_atual, type=int)
+        
+        # Obter ranking para o mês/ano selecionado
+        ranking = obter_ranking_mensal(mes_selecionado, ano_selecionado, limite=None)
         
         # Obter premiações já registradas
         premiacoes = Premiacao.query.filter_by(
-            mes_referencia=mes_atual,
-            ano_referencia=ano_atual
+            mes_referencia=mes_selecionado,
+            ano_referencia=ano_selecionado
         ).all()
         
         return render_template('admin/ranking.html', 
                             ranking=ranking,
                             premiacoes=premiacoes,
-                            mes_selecionado=mes_atual, 
-                            ano_selecionado=ano_atual)
+                            mes_selecionado=mes_selecionado, 
+                            ano_selecionado=ano_selecionado,
+                            mes_atual=mes_atual,
+                            ano_atual=ano_atual)
+
+    @app.route('/admin/ranking/semestral')
+    @admin_required
+    def admin_ranking_semestral():
+        # Obter ano atual e mês atual
+        ano_atual = datetime.now().year
+        mes_atual = datetime.now().month
+        
+        # Determinar semestre atual
+        if 1 <= mes_atual <= 6:
+            semestre_atual = SemestreEnum.PRIMEIRO
+        else:
+            semestre_atual = SemestreEnum.SEGUNDO
+        
+        # Obter parâmetros da URL
+        semestre_selecionado_str = request.args.get('semestre', '')
+        if semestre_selecionado_str == 'primeiro':
+            semestre_selecionado = SemestreEnum.PRIMEIRO
+        elif semestre_selecionado_str == 'segundo':
+            semestre_selecionado = SemestreEnum.SEGUNDO
+        else:
+            semestre_selecionado = semestre_atual
+            
+        ano_selecionado = request.args.get('ano', ano_atual, type=int)
+        
+        # Obter ranking semestral
+        ranking = obter_ranking_semestral(semestre_selecionado, ano_selecionado)
+        
+        # Obter premiações semestrais já registradas
+        premiacoes = PremiacaoSemestral.query.filter_by(
+            semestre=semestre_selecionado,
+            ano=ano_selecionado
+        ).all()
+        
+        return render_template('admin/ranking_semestral.html', 
+                            ranking=ranking,
+                            premiacoes=premiacoes,
+                            semestre_atual=semestre_atual,
+                            ano_atual=ano_atual,
+                            semestre_selecionado=semestre_selecionado,
+                            ano_selecionado=ano_selecionado)
 
     # Rota para visualização de gastos
     @app.route('/admin/gastos')

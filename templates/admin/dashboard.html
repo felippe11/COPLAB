@@ -222,10 +222,18 @@
                     </a>
                     <a href="{{ url_for('admin_ranking') }}" class="list-group-item list-group-item-action">
                         <div class="d-flex w-100 justify-content-between">
-                            <h5 class="mb-1"><i class="fas fa-trophy me-2"></i>Gerenciamento de Ranking</h5>
+                            <h5 class="mb-1"><i class="fas fa-trophy me-2"></i>Gerenciamento de Ranking Mensal</h5>
                             <small><i class="fas fa-chevron-right"></i></small>
                         </div>
-                        <p class="mb-1">Gerencie o ranking mensal e registre premiações.</p>
+                        <p class="mb-1">Gerencie o ranking mensal e visualize as posições.</p>
+                    </a>
+                    
+                    <a href="{{ url_for('admin_ranking_semestral') }}" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1"><i class="fas fa-award me-2"></i>Gerenciamento de Ranking Semestral</h5>
+                            <small><i class="fas fa-chevron-right"></i></small>
+                        </div>
+                        <p class="mb-1">Gerencie o ranking semestral e registre premiações semestrais (Junho e Dezembro).</p>
                     </a>
                     <a href="{{ url_for('admin_relatorios') }}" class="list-group-item list-group-item-action">
                         <div class="d-flex w-100 justify-content-between">
