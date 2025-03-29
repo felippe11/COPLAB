@@ -160,3 +160,19 @@ class Gasto(db.Model):
     
     def __repr__(self):
         return f'<Gasto {self.descricao} - R$ {self.valor:.2f} - {self.data_gasto.strftime("%d/%m/%Y")}>'
+
+# Modelo para Configurações do Sistema
+class ConfiguracaoSistema(db.Model):
+    __tablename__ = 'configuracoes'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    pontuacao_primeiro_colocado = db.Column(db.Integer, nullable=False, default=100)
+    reducao_pontos_por_posicao = db.Column(db.Integer, nullable=False, default=10)
+    data_atualizacao = db.Column(db.DateTime, default=datetime.utcnow)
+    administrador_id = db.Column(db.Integer, db.ForeignKey('administradores.id'), nullable=True)
+    
+    # Relacionamento com administrador
+    administrador = db.relationship('Administrador', backref='configuracoes')
+    
+    def __repr__(self):
+        return f'<ConfiguracaoSistema pontuacao_primeiro={self.pontuacao_primeiro_colocado}, reducao={self.reducao_pontos_por_posicao}>'

@@ -106,3 +106,39 @@ main {
 .modal-confirm .modal-footer {
     border-top: none;
 }
+
+/* Estilos para gráfico de pontuação */
+#grafico-pontuacao {
+    transition: all 0.3s ease;
+    max-width: 100%;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+}
+
+#grafico-pontuacao:hover {
+    transform: scale(1.02);
+}
+
+.filtro-info {
+    font-style: italic;
+    color: #6c757d;
+}
+
+.dropdown-menu .dropdown-header {
+    font-weight: bold;
+    color: #0d6efd;
+}
+
+.filter-pontuacao {
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.filter-pontuacao:hover {
+    background-color: rgba(13, 110, 253, 0.1);
+}
+
+/* Indicador de carregamento */
+.fa-spinner {
+    color: #0d6efd;
+}

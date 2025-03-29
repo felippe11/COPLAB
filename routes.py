@@ -1,7 +1,7 @@
 from flask import render_template, redirect, url_for, flash, request, jsonify, send_from_directory, make_response
 from extensions import db
 from utils import allowed_file
-from models import Integrante, Pagamento, Administrador, Premiacao, CategoriaEnum, StatusPagamentoEnum, VALORES_CATEGORIA, Gasto, SemestreEnum, RankingSemestral, PremiacaoSemestral
+from models import Integrante, Pagamento, Administrador, Premiacao, CategoriaEnum, StatusPagamentoEnum, VALORES_CATEGORIA, Gasto, SemestreEnum, RankingSemestral, PremiacaoSemestral, ConfiguracaoSistema
 from datetime import datetime
 import os
 import uuid
@@ -16,6 +16,9 @@ from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.units import inch
+import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('Agg')  # Usar o backend não interativo
 
 def register_routes(app):
 
@@ -29,6 +32,104 @@ def register_routes(app):
         novo_nome = f"{uuid.uuid4().hex}.{ext}"
         return novo_nome
 
+    # Função para obter as configurações de pontuação do sistema
+    def obter_configuracoes_pontuacao():
+        # Buscar configuração no banco de dados
+        config = ConfiguracaoSistema.query.first()
+        
+        # Se não existir, criar com valores padrão
+        if not config:
+            config = ConfiguracaoSistema(
+                pontuacao_primeiro_colocado=100,
+                reducao_pontos_por_posicao=10
+            )
+            db.session.add(config)
+            db.session.commit()
+            
+        return config
+
+    # Função para gerar gráfico de saldo vs gastos e entradas
+    def gerar_grafico_saldo_gastos():
+        # Criar diretório para gráficos se não existir
+        graphs_dir = os.path.join(app.static_folder, 'graphs')
+        os.makedirs(graphs_dir, exist_ok=True)
+        
+        # Obter dados históricos de pagamentos e gastos por mês
+        # Vamos considerar os últimos 6 meses
+        data_atual = datetime.now()
+        meses = []
+        saldos = []
+        gastos_mensais = []
+        entradas_mensais = []
+        
+        # Coletar dados dos últimos 6 meses
+        for i in range(5, -1, -1):  # De 5 meses atrás até o mês atual
+            # Calcular o mês e ano de referência
+            mes = data_atual.month - i
+            ano = data_atual.year
+            
+            # Ajustar para meses anteriores ao ano atual
+            while mes <= 0:
+                mes += 12
+                ano -= 1
+                
+            # Obter pagamentos do mês
+            pagamentos_mes = Pagamento.query.filter_by(
+                mes_referencia=mes,
+                ano_referencia=ano,
+                status=StatusPagamentoEnum.VALIDADO
+            ).all()
+            
+            # Obter gastos do mês (aproximado pela data do gasto)
+            primeiro_dia = datetime(ano, mes, 1)
+            if mes == 12:
+                ultimo_dia = datetime(ano + 1, 1, 1)
+            else:
+                ultimo_dia = datetime(ano, mes + 1, 1)
+                
+            gastos_mes = Gasto.query.filter(
+                Gasto.data_gasto >= primeiro_dia,
+                Gasto.data_gasto < ultimo_dia
+            ).all()
+            
+            # Calcular valores
+            total_arrecadado_mes = sum(pagamento.valor for pagamento in pagamentos_mes)
+            total_gastos_mes = sum(gasto.valor for gasto in gastos_mes)
+            saldo_liquido_mes = total_arrecadado_mes - total_gastos_mes
+            
+            # Adicionar aos arrays para o gráfico
+            meses.append(f"{mes}/{ano}")
+            gastos_mensais.append(total_gastos_mes)
+            entradas_mensais.append(total_arrecadado_mes)
+            saldos.append(saldo_liquido_mes)
+        
+        # Criar o gráfico
+        plt.figure(figsize=(10, 5))
+        
+        # Plotar barras para saldo, gastos e entradas
+        bar_width = 0.25
+        index = range(len(meses))
+        
+        plt.bar([i - bar_width for i in index], entradas_mensais, bar_width, label='Entrada de Pagamentos', color='green', alpha=0.7)
+        plt.bar([i for i in index], gastos_mensais, bar_width, label='Gastos', color='red', alpha=0.7)
+        plt.bar([i + bar_width for i in index], saldos, bar_width, label='Saldo em Caixa', color='blue', alpha=0.7)
+        
+        # Configurar o gráfico
+        plt.xlabel('Mês/Ano')
+        plt.ylabel('Valor (R$)')
+        plt.title('Progresso Financeiro: Entradas, Gastos e Saldo')
+        plt.xticks(index, meses)
+        plt.legend()
+        plt.grid(axis='y', linestyle='--', alpha=0.7)
+        
+        # Salvar o gráfico
+        grafico_path = os.path.join(graphs_dir, 'financeiro_completo.png')
+        plt.savefig(grafico_path, bbox_inches='tight', dpi=100)
+        plt.close()
+        
+        # Retornar o nome do arquivo para uso no template
+        return 'financeiro_completo.png'
+    
     # Rota para o dashboard principal
     @app.route('/')
     def index():
@@ -47,18 +148,38 @@ def register_routes(app):
         mes_atual = datetime.now().month
         ano_atual = datetime.now().year
         
-        # Obter ranking do mês atual (top 3)
-        ranking = obter_ranking_mensal(mes_atual, ano_atual, limite=3)
+        # Obter ranking do mês atual (completo, sem limite)
+        ranking = obter_ranking_mensal(mes_atual, ano_atual, limite=None)
+        
+        # Determinar semestre atual
+        semestre_atual = SemestreEnum.PRIMEIRO if 1 <= mes_atual <= 6 else SemestreEnum.SEGUNDO
+        
+        # Obter ranking semestral atual (completo, sem limite)
+        ranking_semestral = obter_ranking_semestral(semestre_atual, ano_atual, limite=None)
+        
+        # Obter configurações de pontuação
+        config_pontuacao = obter_configuracoes_pontuacao()
+        
+        # Gerar gráfico de saldo vs gastos
+        grafico_nome = gerar_grafico_saldo_gastos()
+        
+        # Gerar gráfico de pontuação dos integrantes para o mês atual
+        grafico_pontuacao = gerar_grafico_pontuacao(mes=mes_atual, ano=ano_atual)
         
         return render_template('index.html', 
                             saldo_total=saldo_total, 
                             total_arrecadado=total_arrecadado,
                             total_gastos=total_gastos,
                             ranking=ranking, 
+                            ranking_semestral=ranking_semestral,
                             mes_atual=mes_atual, 
                             ano_atual=ano_atual,
                             valores_categoria=VALORES_CATEGORIA,
-                            categorias=CategoriaEnum)
+                            categorias=CategoriaEnum,
+                            grafico_nome=grafico_nome,
+                            grafico_pontuacao=grafico_pontuacao,
+                            semestre_atual=semestre_atual,
+                            config_pontuacao=config_pontuacao)
 
     # Função para obter ranking mensal
     def obter_ranking_mensal(mes, ano, limite=3):
@@ -67,11 +188,35 @@ def register_routes(app):
             mes_referencia=mes,
             ano_referencia=ano,
             status=StatusPagamentoEnum.VALIDADO
-        ).order_by(Pagamento.data_pagamento).all()
+        ).all()
         
+        # Ordenar pagamentos por data de pagamento (do mais antigo para o mais recente)
+        pagamentos.sort(key=lambda p: p.data_pagamento)
+        
+        # Obter configurações de pontuação
+        config = obter_configuracoes_pontuacao()
+        pontuacao_primeiro = config.pontuacao_primeiro_colocado
+        reducao_pontos = config.reducao_pontos_por_posicao
+        
+        # Pontuação mínima é 10% da pontuação do primeiro colocado
+        pontuacao_minima = max(10, int(pontuacao_primeiro * 0.1))
+        
+        # Lista para armazenar pagamentos após recálculo
+        pagamentos_processados = []
+        
+        for i, pagamento in enumerate(pagamentos):
+            # Calcular pontuação com base na posição (0-indexado)
+            pontuacao = max(pontuacao_minima, pontuacao_primeiro - (i * reducao_pontos))
+            
+            # Atualizar a pontuação no objeto pagamento
+            pagamento.pontos = pontuacao
+            
+            # Adicionar à lista de processados
+            pagamentos_processados.append(pagamento)
+            
         # Criar lista de integrantes com suas posições
         ranking = []
-        for i, pagamento in enumerate(pagamentos[:limite]):
+        for i, pagamento in enumerate(pagamentos_processados[:limite] if limite else pagamentos_processados):
             ranking.append({
                 'posicao': i + 1,
                 'integrante': pagamento.integrante,
@@ -79,26 +224,86 @@ def register_routes(app):
                 'pontos': pagamento.pontos
             })
         
-        return ranking
+        # Atualizar pontuações no banco de dados
+        db.session.commit()
         
-    # Função para calcular pontos com base na data de pagamento
-    def calcular_pontos_pagamento(data_pagamento, mes, ano):
-        # Quanto mais cedo no mês o pagamento for realizado, maior a pontuação
-        # Dia 1 = 30 pontos, Dia 30 = 1 ponto
-        dia_pagamento = data_pagamento.day
-        dias_no_mes = calendar.monthrange(ano, mes)[1]
-        pontos = max(1, dias_no_mes - dia_pagamento + 1)
-        return pontos
+        return ranking
         
     # Função para obter ranking semestral
     def obter_ranking_semestral(semestre, ano, limite=None):
-        # Determinar qual semestre (1 = Jan-Jun, 2 = Jul-Dez)
+        # Determinar quais meses estão no semestre
         if semestre == SemestreEnum.PRIMEIRO:
             meses = range(1, 7)  # Janeiro a Junho
         else:
             meses = range(7, 13)  # Julho a Dezembro
+        
+        # Obter todos os integrantes ativos
+        integrantes = Integrante.query.filter_by(ativo=True).all()
+        
+        # Obter configurações de pontuação
+        config = obter_configuracoes_pontuacao()
+        pontuacao_primeiro = config.pontuacao_primeiro_colocado
+        reducao_pontos = config.reducao_pontos_por_posicao
+        
+        # Pontuação mínima é 10% da pontuação do primeiro colocado
+        pontuacao_minima = max(10, int(pontuacao_primeiro * 0.1))
+        
+        # Dicionário para armazenar a pontuação acumulada por integrante
+        pontuacoes = {}
+        
+        # Para cada mês no semestre, buscar os pagamentos e acumular pontos
+        for mes in meses:
+            # Buscar pagamentos validados do mês
+            pagamentos = Pagamento.query.filter_by(
+                mes_referencia=mes,
+                ano_referencia=ano,
+                status=StatusPagamentoEnum.VALIDADO
+            ).order_by(Pagamento.data_pagamento).all()
             
-        # Buscar todos os rankings semestrais
+            # Recalcular pontuação para este mês baseada na ordem
+            for i, pagamento in enumerate(pagamentos):
+                # Calcular pontuação (primeiro colocado recebe pontuação máxima, depois vai diminuindo)
+                pontuacao = max(pontuacao_minima, pontuacao_primeiro - (i * reducao_pontos))
+                
+                # Atualizar pontuação no objeto pagamento
+                pagamento.pontos = pontuacao
+                
+                # Acumular pontos por integrante
+                integrante_id = pagamento.integrante_id
+                if integrante_id in pontuacoes:
+                    pontuacoes[integrante_id] += pontuacao
+                else:
+                    pontuacoes[integrante_id] = pontuacao
+        
+        # Salvar alterações nos pagamentos
+        db.session.commit()
+        
+        # Atualizar a tabela de ranking semestral com as pontuações calculadas
+        for integrante_id, pontos in pontuacoes.items():
+            # Buscar ou criar registro
+            ranking = RankingSemestral.query.filter_by(
+                integrante_id=integrante_id,
+                semestre=semestre,
+                ano=ano
+            ).first()
+            
+            if not ranking:
+                # Criar novo registro
+                ranking = RankingSemestral(
+                    integrante_id=integrante_id,
+                    semestre=semestre,
+                    ano=ano,
+                    pontos=pontos
+                )
+                db.session.add(ranking)
+            else:
+                # Atualizar pontuação
+                ranking.pontos = pontos
+        
+        # Salvar alterações
+        db.session.commit()
+        
+        # Buscar todos os rankings semestrais já atualizados
         rankings = RankingSemestral.query.filter_by(
             semestre=semestre,
             ano=ano
@@ -116,33 +321,70 @@ def register_routes(app):
         return ranking_semestral
         
     # Função para atualizar o ranking semestral
-    def atualizar_ranking_semestral(integrante_id, mes, ano, pontos):
+    def atualizar_ranking_semestral(integrante_id, mes, ano, pontos=None, recalculo=False):
         # Determinar o semestre com base no mês
         if 1 <= mes <= 6:
             semestre = SemestreEnum.PRIMEIRO
         else:
             semestre = SemestreEnum.SEGUNDO
             
-        # Buscar ou criar registro de ranking semestral
-        ranking = RankingSemestral.query.filter_by(
-            integrante_id=integrante_id,
-            semestre=semestre,
-            ano=ano
-        ).first()
+        # Como agora calculamos a pontuação semestral somando os pontos de todos os meses,
+        # vamos simplesmente recalcular o ranking semestral completo
+        obter_ranking_semestral(semestre, ano)
         
-        if not ranking:
-            ranking = RankingSemestral(
-                integrante_id=integrante_id,
-                semestre=semestre,
-                ano=ano,
-                pontos=pontos
-            )
-            db.session.add(ranking)
-        else:
-            ranking.pontos += pontos
+        return True
+
+    # Função para recalcular pontuações de todos os pagamentos
+    def recalcular_pontuacoes():
+        # Buscar todos os meses e anos distintos onde existem pagamentos validados
+        meses_anos = db.session.query(
+            Pagamento.mes_referencia, 
+            Pagamento.ano_referencia
+        ).filter_by(
+            status=StatusPagamentoEnum.VALIDADO
+        ).distinct().all()
+        
+        # Obter configurações de pontuação
+        config = obter_configuracoes_pontuacao()
+        pontuacao_primeiro = config.pontuacao_primeiro_colocado
+        reducao_pontos = config.reducao_pontos_por_posicao
+        
+        # Pontuação mínima é 10% da pontuação do primeiro colocado
+        pontuacao_minima = max(10, int(pontuacao_primeiro * 0.1))
+        
+        # Para cada mês/ano, recalcular as pontuações com base na ordem de pagamento
+        for mes, ano in meses_anos:
+            # Obter pagamentos validados do mês/ano
+            pagamentos = Pagamento.query.filter_by(
+                mes_referencia=mes,
+                ano_referencia=ano,
+                status=StatusPagamentoEnum.VALIDADO
+            ).order_by(Pagamento.data_pagamento).all()
             
+            # Recalcular pontuações baseadas na ordem
+            for i, pagamento in enumerate(pagamentos):
+                # Calcular pontuação (primeiro recebe pontuação máxima, depois vai diminuindo)
+                pontuacao = max(pontuacao_minima, pontuacao_primeiro - (i * reducao_pontos))
+                
+                # Atualizar pontuação
+                pagamento.pontos = pontuacao
+        
+        # Salvar alterações nos pagamentos
         db.session.commit()
-        return ranking
+        
+        # Recalcular rankings semestrais para todos os semestres que têm pagamentos
+        semestres_anos = set()
+        for mes, ano in meses_anos:
+            if 1 <= mes <= 6:
+                semestres_anos.add((SemestreEnum.PRIMEIRO, ano))
+            else:
+                semestres_anos.add((SemestreEnum.SEGUNDO, ano))
+        
+        # Atualizar cada ranking semestral
+        for semestre, ano in semestres_anos:
+            obter_ranking_semestral(semestre, ano)
+        
+        return True
 
     # Rota para busca de integrantes
     @app.route('/buscar_integrante')
@@ -169,6 +411,108 @@ def register_routes(app):
         } for integrante in integrantes]
     
         return jsonify(resultado)
+        
+    # API para obter o ranking mensal
+    @app.route('/api/ranking_mensal')
+    def api_ranking_mensal():
+        # Obter parâmetros
+        mes = request.args.get('mes', type=int)
+        ano = request.args.get('ano', type=int)
+        
+        # Validar parâmetros
+        if not mes or not ano:
+            return jsonify({'error': 'Parâmetros inválidos'}), 400
+            
+        # Obter ranking
+        ranking_lista = obter_ranking_mensal(mes, ano, limite=None)
+        
+        # Formatar resultado para JSON
+        resultado = {
+            'ranking': [{
+                'posicao': item['posicao'],
+                'integrante': {
+                    'id': item['integrante'].id,
+                    'nome': item['integrante'].nome,
+                    'categoria': item['integrante'].categoria.value
+                },
+                'data_pagamento': item['data_pagamento'].isoformat(),
+                'pontos': item['pontos']
+            } for item in ranking_lista]
+        }
+        
+        return jsonify(resultado)
+        
+    # API para obter o ranking semestral
+    @app.route('/api/ranking_semestral')
+    def api_ranking_semestral():
+        # Obter parâmetros
+        semestre_str = request.args.get('semestre', '')
+        ano = request.args.get('ano', type=int)
+        
+        # Converter string do semestre para enum
+        if semestre_str == 'PRIMEIRO':
+            semestre = SemestreEnum.PRIMEIRO
+        elif semestre_str == 'SEGUNDO':
+            semestre = SemestreEnum.SEGUNDO
+        else:
+            return jsonify({'error': 'Semestre inválido'}), 400
+            
+        # Validar parâmetros
+        if not ano:
+            return jsonify({'error': 'Parâmetros inválidos'}), 400
+            
+        # Obter ranking
+        ranking_lista = obter_ranking_semestral(semestre, ano, limite=None)
+        
+        # Formatar resultado para JSON
+        resultado = {
+            'ranking': [{
+                'posicao': item['posicao'],
+                'integrante': {
+                    'id': item['integrante'].id,
+                    'nome': item['integrante'].nome,
+                    'categoria': item['integrante'].categoria.value
+                },
+                'pontos': item['pontos']
+            } for item in ranking_lista]
+        }
+        
+        return jsonify(resultado)
+    
+    # API para obter o gráfico de pontuação
+    @app.route('/api/grafico_pontuacao')
+    def api_grafico_pontuacao():
+        # Obter parâmetros da URL
+        mes = request.args.get('mes')
+        semestre = request.args.get('semestre')
+        ano = request.args.get('ano', datetime.now().year)
+        
+        # Validar e converter parâmetros
+        if ano and ano.isdigit():
+            ano = int(ano)
+        else:
+            ano = datetime.now().year
+            
+        if mes and mes.isdigit() and 1 <= int(mes) <= 12:
+            mes = int(mes)
+            semestre = None
+            grafico = gerar_grafico_pontuacao(mes=mes, ano=ano)
+        elif semestre and semestre in ['PRIMEIRO', 'SEGUNDO']:
+            mes = None
+            semestre = SemestreEnum[semestre]
+            grafico = gerar_grafico_pontuacao(semestre=semestre, ano=ano)
+        else:
+            # Default: mês atual
+            mes = datetime.now().month
+            semestre = None
+            grafico = gerar_grafico_pontuacao(mes=mes, ano=ano)
+            
+        return jsonify({
+            'grafico': grafico,
+            'mes': mes,
+            'semestre': semestre.name if semestre else None,
+            'ano': ano
+        })
 
     # Rota para exibir detalhes do integrante e pagamentos pendentes
     @app.route('/integrante/<int:integrante_id>')
@@ -360,6 +704,9 @@ def register_routes(app):
         # Obter gastos recentes (últimos 5)
         gastos_recentes = Gasto.query.order_by(Gasto.data_gasto.desc()).limit(5).all()
         
+        # Obter configurações de pontuação
+        config_pontuacao = obter_configuracoes_pontuacao()
+        
         return render_template('admin/dashboard.html', 
                                total_integrantes=total_integrantes,
                                pagamentos_pendentes=pagamentos_pendentes,
@@ -368,7 +715,68 @@ def register_routes(app):
                                 total_gastos=total_gastos,
                                 mes_atual_nome=mes_atual_nome,
                                 pagamentos_aguardando=pagamentos_aguardando,
-                                gastos_recentes=gastos_recentes)
+                                gastos_recentes=gastos_recentes,
+                                config_pontuacao=config_pontuacao)
+
+    # Rota para recalcular pontuações de todos os pagamentos
+    @app.route('/admin/recalcular-pontuacoes', methods=['POST'])
+    @admin_required
+    def admin_recalcular_pontuacoes():
+        try:
+            # Executar recálculo de pontuações
+            recalcular_pontuacoes()
+            flash('Pontuações recalculadas com sucesso! O ranking semestral agora mostra a soma dos pontos de todos os meses.', 'success')
+        except Exception as e:
+            flash(f'Erro ao recalcular pontuações: {str(e)}', 'danger')
+            
+        return redirect(url_for('admin_dashboard'))
+        
+    # Rota para salvar configurações de pontuação
+    @app.route('/admin/configurar-pontuacao', methods=['POST'])
+    @admin_required
+    def admin_configurar_pontuacao():
+        admin_id = request.cookies.get('admin_id')
+        
+        try:
+            # Obter valores do formulário
+            pontuacao_primeiro = request.form.get('pontuacao_primeiro', 100, type=int)
+            reducao_pontos = request.form.get('reducao_pontos', 10, type=int)
+            
+            # Validar valores
+            if pontuacao_primeiro < 10 or pontuacao_primeiro > 1000:
+                flash('A pontuação do primeiro colocado deve estar entre 10 e 1000.', 'danger')
+                return redirect(url_for('admin_dashboard'))
+                
+            if reducao_pontos < 1 or reducao_pontos > pontuacao_primeiro:
+                flash('A redução de pontos deve estar entre 1 e a pontuação do primeiro colocado.', 'danger')
+                return redirect(url_for('admin_dashboard'))
+            
+            # Buscar configuração existente ou criar nova
+            config = ConfiguracaoSistema.query.first()
+            if not config:
+                config = ConfiguracaoSistema()
+                db.session.add(config)
+            
+            # Atualizar configuração
+            config.pontuacao_primeiro_colocado = pontuacao_primeiro
+            config.reducao_pontos_por_posicao = reducao_pontos
+            config.data_atualizacao = datetime.utcnow()
+            config.administrador_id = admin_id
+            
+            db.session.commit()
+            
+            # Perguntar se deseja recalcular pontuações
+            recalcular = request.form.get('recalcular', 'false')
+            if recalcular == 'true':
+                recalcular_pontuacoes()
+                flash('Configurações salvas e pontuações recalculadas com sucesso!', 'success')
+            else:
+                flash('Configurações de pontuação salvas com sucesso! As novas configurações serão aplicadas a novos pagamentos validados.', 'success')
+                
+        except Exception as e:
+            flash(f'Erro ao salvar configurações: {str(e)}', 'danger')
+            
+        return redirect(url_for('admin_dashboard'))
 
     # Rota para gerenciamento de integrantes
     @app.route('/admin/integrantes')
@@ -506,13 +914,19 @@ def register_routes(app):
             pagamento.data_validacao = datetime.utcnow()
             pagamento.observacao = observacao
             
-            # Verificar se é o primeiro pagamento do mês para atualizar o ranking
+            # Salvar para confirmar a validação
+            db.session.commit()
+            
+            # Obter mês e ano do pagamento
             mes = pagamento.mes_referencia
             ano = pagamento.ano_referencia
             
-            # Calcular pontos com base na data de pagamento
-            pontos = calcular_pontos_pagamento(pagamento.data_pagamento, mes, ano)
-            pagamento.pontos = pontos
+            # Recalcular o ranking mensal para atualizar as pontuações 
+            # com base na ordem de pagamento
+            ranking = obter_ranking_mensal(mes, ano, limite=None)
+            
+            # A pontuação já foi atualizada pelo obter_ranking_mensal
+            pontos = pagamento.pontos
             
             # Atualizar ranking semestral
             atualizar_ranking_semestral(pagamento.integrante_id, mes, ano, pontos)
@@ -525,22 +939,26 @@ def register_routes(app):
             ).first()
             
             if not premiacao_existente:
-                # Criar premiação para o primeiro colocado
-                premiacao = Premiacao(
-                    integrante_id=pagamento.integrante_id,
-                    mes_referencia=mes,
-                    ano_referencia=ano,
-                    posicao=1
-                )
-                db.session.add(premiacao)
+                # Buscar o primeiro colocado do ranking
+                if ranking and len(ranking) > 0:
+                    primeiro_colocado = ranking[0]
+                    # Criar premiação para o primeiro colocado
+                    premiacao = Premiacao(
+                        integrante_id=primeiro_colocado['integrante'].id,
+                        mes_referencia=mes,
+                        ano_referencia=ano,
+                        posicao=1
+                    )
+                    db.session.add(premiacao)
+                    db.session.commit()
             
-            flash('Pagamento validado com sucesso!', 'success')
+            flash('Pagamento validado com sucesso! As pontuações foram atualizadas com base na ordem de pagamento.', 'success')
         elif acao == 'rejeitar':
             pagamento.status = StatusPagamentoEnum.REJEITADO
             pagamento.observacao = observacao
+            db.session.commit()
             flash('Pagamento rejeitado!', 'warning')
         
-        db.session.commit()
         return redirect(url_for('admin_dashboard'))
 
     # Rota para relatórios financeiros
@@ -969,59 +1387,6 @@ def register_routes(app):
                                 resumo=resumo,
                                 estatisticas_categoria=estatisticas_categoria)
 
-    # API para gerar relatório mensal
-    @app.route('/api/relatorio/mensal')
-    @admin_required
-    def api_relatorio_mensal():
-        mes = request.args.get('mes', datetime.now().month, type=int)
-        ano = request.args.get('ano', datetime.now().year, type=int)
-        
-        # Buscar todos os pagamentos do mês/ano
-        pagamentos = Pagamento.query.filter_by(
-            mes_referencia=mes,
-            ano_referencia=ano
-        ).all()
-        
-        # Calcular estatísticas
-        total_arrecadado = sum(p.valor for p in pagamentos if p.status == StatusPagamentoEnum.VALIDADO)
-        total_pendente = sum(p.valor for p in pagamentos if p.status == StatusPagamentoEnum.PENDENTE)
-        total_aguardando = sum(p.valor for p in pagamentos if p.status == StatusPagamentoEnum.AGUARDANDO_VALIDACAO)
-        
-        # Detalhes por integrante
-        detalhes_integrantes = []
-        for pagamento in pagamentos:
-            detalhes_integrantes.append({
-                'nome': pagamento.integrante.nome,
-                'categoria': pagamento.integrante.categoria.value,
-                'valor': pagamento.valor,
-                'status': pagamento.status.value,
-                'data_pagamento': pagamento.data_pagamento.strftime('%d/%m/%Y %H:%M') if pagamento.data_pagamento else None
-            })
-        
-        # Premiação do mês
-        premiacao = Premiacao.query.filter_by(
-            mes_referencia=mes,
-            ano_referencia=ano,
-            posicao=1
-        ).first()
-        
-        vencedor = None
-        if premiacao:
-            vencedor = premiacao.integrante.nome
-        
-        relatorio = {
-            'mes': mes,
-            'ano': ano,
-            'nome_mes': calendar.month_name[mes],
-            'total_arrecadado': total_arrecadado,
-            'total_pendente': total_pendente,
-            'total_aguardando': total_aguardando,
-            'detalhes_integrantes': detalhes_integrantes,
-            'vencedor_premiacao': vencedor
-        }
-        
-        return jsonify(relatorio)
-
     # Rota para rejeitar pagamento diretamente da página de relatórios
     @app.route('/admin/pagamentos/rejeitar/<int:pagamento_id>', methods=['POST'])
     @admin_required
@@ -1277,3 +1642,181 @@ def register_routes(app):
         
         flash('Gasto excluído com sucesso!', 'success')
         return redirect(url_for('admin_gastos'))
+
+    # Função para gerar gráfico de pontuação dos integrantes
+    def gerar_grafico_pontuacao(mes=None, semestre=None, ano=None):
+        # Criar diretório para gráficos se não existir
+        graphs_dir = os.path.join(app.static_folder, 'graphs')
+        os.makedirs(graphs_dir, exist_ok=True)
+        
+        # Se não foi especificado mês ou semestre, usar mês atual
+        data_atual = datetime.now()
+        if mes is None and semestre is None:
+            mes = data_atual.month
+        if ano is None:
+            ano = data_atual.year
+            
+        # Obter configurações de pontuação
+        config = obter_configuracoes_pontuacao()
+        pontuacao_primeiro = config.pontuacao_primeiro_colocado
+        reducao_pontos = config.reducao_pontos_por_posicao
+            
+        # Nome do arquivo e título do gráfico dependem do filtro
+        if mes is not None:
+            # Filtro por mês - forçar recálculo das pontuações
+            # Obter ranking com pontuações baseadas na ordem
+            rankings = obter_ranking_mensal(mes, ano, limite=None)
+            periodo = f"{mes}/{ano}"
+            titulo = f"Pontuação por Ordem de Pagamento - {periodo}"
+            
+            # Texto explicativo
+            subtitulo = f"Primeiro a pagar = {pontuacao_primeiro} pontos, com redução de {reducao_pontos} pontos por posição"
+            
+            # Limites do eixo Y para gráfico mensal
+            ylim_min = 0
+            ylim_max = pontuacao_primeiro + 10
+            
+            arquivo = f'pontuacao_mensal_{mes}_{ano}.png'
+        else:
+            # Filtro por semestre - forçar recálculo das pontuações
+            rankings = obter_ranking_semestral(semestre, ano, limite=None)
+            periodo = f"{semestre.value}/{ano}"
+            titulo = f"Pontuação Acumulada - {periodo}"
+            subtitulo = f"Soma dos pontos de todos os meses do semestre (Primeiro = {pontuacao_primeiro}, redução = {reducao_pontos})"
+            
+            # Para o semestral, os limites dependem dos dados
+            ylim_min = 0
+            # Calculamos o máximo com base nos dados, mas no mínimo 100 pontos
+            if rankings:
+                max_pontos = max([r['pontos'] for r in rankings]) if rankings else pontuacao_primeiro
+                ylim_max = max(pontuacao_primeiro * 6, max_pontos * 1.1)  # 10% a mais que o valor máximo
+            else:
+                ylim_max = pontuacao_primeiro * 6  # Valor padrão se não houver dados
+            
+            arquivo = f'pontuacao_semestral_{semestre.name}_{ano}.png'
+        
+        # Limitar para os 15 primeiros para melhor visualização
+        rankings = rankings[:15] if len(rankings) > 15 else rankings
+        
+        if not rankings:
+            # Se não houver dados, criar um gráfico vazio
+            plt.figure(figsize=(10, 6))
+            plt.title(f"{titulo}")
+            plt.figtext(0.5, 0.5, "Não há pontuações registradas para este período", 
+                     horizontalalignment='center', verticalalignment='center', fontsize=12)
+            plt.figtext(0.5, 0.45, subtitulo, 
+                     horizontalalignment='center', verticalalignment='center', fontsize=10, 
+                     style='italic', color='gray')
+            
+            grafico_path = os.path.join(graphs_dir, arquivo)
+            plt.savefig(grafico_path, bbox_inches='tight', dpi=100)
+            plt.close()
+            
+            return arquivo
+        
+        # Extrair dados para o gráfico
+        nomes = [r['integrante'].nome for r in rankings]
+        pontos = [r['pontos'] for r in rankings]
+        
+        # Cores para destacar os 3 primeiros colocados
+        cores = ['gold', 'silver', '#cd7f32']  # Ouro, Prata, Bronze
+        cores.extend(['#1f77b4'] * (len(rankings) - 3))  # Azul para os demais
+        
+        # Criar o gráfico
+        plt.figure(figsize=(12, 7))
+        
+        # Adicionar linhas de referência específicas por tipo de gráfico
+        if mes is not None:
+            # Para gráfico mensal, linhas a cada 'reducao_pontos'
+            for p in range(0, pontuacao_primeiro + reducao_pontos, reducao_pontos):
+                plt.axhline(y=p, color='gray', linestyle='--', alpha=0.3)
+        else:
+            # Para gráfico semestral, linhas a cada 'pontuacao_primeiro'
+            step = pontuacao_primeiro
+            for p in range(0, int(ylim_max) + step, step):
+                plt.axhline(y=p, color='gray', linestyle='--', alpha=0.3)
+        
+        # Plotar as barras
+        barras = plt.bar(nomes, pontos, color=cores, width=0.6)
+        
+        # Adicionar valores sobre as barras
+        for barra in barras:
+            altura = barra.get_height()
+            plt.text(barra.get_x() + barra.get_width()/2., altura + (ylim_max * 0.01),
+                    f'{int(altura)}', ha='center', va='bottom', fontweight='bold')
+        
+        # Configurar o gráfico
+        plt.xlabel('Integrantes')
+        plt.ylabel('Pontos')
+        plt.title(titulo, fontsize=16, pad=20)
+        
+        # Adicionar subtítulo
+        plt.figtext(0.5, 0.01, subtitulo, ha='center', fontsize=10, style='italic')
+        
+        # Definir limites do eixo Y
+        plt.ylim(ylim_min, ylim_max)
+        
+        plt.xticks(rotation=45, ha='right')
+        plt.tight_layout()
+        plt.grid(axis='y', linestyle='--', alpha=0.3)
+        
+        # Salvar o gráfico
+        grafico_path = os.path.join(graphs_dir, arquivo)
+        plt.savefig(grafico_path, bbox_inches='tight', dpi=100)
+        plt.close()
+        
+        # Retornar o nome do arquivo para uso no template
+        return arquivo
+
+    # API para gerar relatório mensal
+    @app.route('/api/relatorio/mensal')
+    @admin_required
+    def api_relatorio_mensal():
+        mes = request.args.get('mes', datetime.now().month, type=int)
+        ano = request.args.get('ano', datetime.now().year, type=int)
+        
+        # Buscar todos os pagamentos do mês/ano
+        pagamentos = Pagamento.query.filter_by(
+            mes_referencia=mes,
+            ano_referencia=ano
+        ).all()
+        
+        # Calcular estatísticas
+        total_arrecadado = sum(p.valor for p in pagamentos if p.status == StatusPagamentoEnum.VALIDADO)
+        total_pendente = sum(p.valor for p in pagamentos if p.status == StatusPagamentoEnum.PENDENTE)
+        total_aguardando = sum(p.valor for p in pagamentos if p.status == StatusPagamentoEnum.AGUARDANDO_VALIDACAO)
+        
+        # Detalhes por integrante
+        detalhes_integrantes = []
+        for pagamento in pagamentos:
+            detalhes_integrantes.append({
+                'nome': pagamento.integrante.nome,
+                'categoria': pagamento.integrante.categoria.value,
+                'valor': pagamento.valor,
+                'status': pagamento.status.value,
+                'data_pagamento': pagamento.data_pagamento.strftime('%d/%m/%Y %H:%M') if pagamento.data_pagamento else None
+            })
+        
+        # Premiação do mês
+        premiacao = Premiacao.query.filter_by(
+            mes_referencia=mes,
+            ano_referencia=ano,
+            posicao=1
+        ).first()
+        
+        vencedor = None
+        if premiacao:
+            vencedor = premiacao.integrante.nome
+        
+        relatorio = {
+            'mes': mes,
+            'ano': ano,
+            'nome_mes': calendar.month_name[mes],
+            'total_arrecadado': total_arrecadado,
+            'total_pendente': total_pendente,
+            'total_aguardando': total_aguardando,
+            'detalhes_integrantes': detalhes_integrantes,
+            'vencedor_premiacao': vencedor
+        }
+        
+        return jsonify(relatorio)

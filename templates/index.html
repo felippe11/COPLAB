@@ -66,54 +66,189 @@
     </div>
 </div>
 
+<!-- Gráfico de Saldo vs Gastos -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-line me-2"></i>
+                    Entradas, Gastos e Saldo
+                </h5>
+            </div>
+            <div class="card-body text-center">
+                <img src="{{ url_for('static', filename='graphs/' + grafico_nome) }}" alt="Gráfico de Entradas, Gastos e Saldo" class="img-fluid">
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-trophy me-2"></i>
+                        Pontuação dos Integrantes
+                    </h5>
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-light dropdown-toggle" type="button" id="filterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            Filtrar
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="filterDropdown">
+                            <li><h6 class="dropdown-header">Por Mês</h6></li>
+                            {% for i in range(1, 13) %}
+                            <li><a class="dropdown-item filter-pontuacao" href="#" data-tipo="mes" data-valor="{{ i }}">{{ i }}</a></li>
+                            {% endfor %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li><h6 class="dropdown-header">Por Semestre</h6></li>
+                            <li><a class="dropdown-item filter-pontuacao" href="#" data-tipo="semestre" data-valor="PRIMEIRO">Primeiro</a></li>
+                            <li><a class="dropdown-item filter-pontuacao" href="#" data-tipo="semestre" data-valor="SEGUNDO">Segundo</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body text-center">
+                <div id="grafico-wrapper">
+                    <img id="grafico-pontuacao" src="{{ url_for('static', filename='graphs/' + grafico_pontuacao) }}" alt="Gráfico de Pontuação dos Integrantes" class="img-fluid">
+                </div>
+                <div class="filtro-info mt-2 text-muted">
+                    <small>Mostrando: <span id="filtro-atual">Mês {{ mes_atual }}/{{ ano_atual }}</span></small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="row">
     <!-- Ranking do Mês -->
     <div class="col-md-8">
         <div class="card mb-4">
             <div class="card-header bg-primary text-white">
-                <h5 class="mb-0">
-                    <i class="fas fa-trophy me-2"></i>
-                    Ranking de Pagamentos - {{ mes_atual }}/{{ ano_atual }}
-                </h5>
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-trophy me-2"></i>
+                        <span id="ranking-titulo">Ranking de Pagamentos - {{ mes_atual }}/{{ ano_atual }}</span>
+                    </h5>
+                    <div class="d-flex">
+                        <div id="filtros-ranking" class="me-2">
+                            <!-- Filtros do Ranking Mensal -->
+                            <div id="filtro-mensal" class="input-group input-group-sm">
+                                <select id="filtro-mes" class="form-select">
+                                    {% for i in range(1, 13) %}
+                                    <option value="{{ i }}" {% if i == mes_atual|int %}selected{% endif %}>{{ i }}</option>
+                                    {% endfor %}
+                                </select>
+                                <span class="input-group-text">/</span>
+                                <select id="filtro-ano-mensal" class="form-select">
+                                    {% for ano in range(ano_atual-2, ano_atual+1) %}
+                                    <option value="{{ ano }}" {% if ano == ano_atual %}selected{% endif %}>{{ ano }}</option>
+                                    {% endfor %}
+                                </select>
+                                <button id="btn-filtrar-mensal" class="btn btn-light btn-sm"><i class="fas fa-filter"></i></button>
+                            </div>
+                            <!-- Filtros do Ranking Semestral (inicialmente oculto) -->
+                            <div id="filtro-semestral" class="input-group input-group-sm" style="display: none;">
+                                <select id="filtro-semestre" class="form-select">
+                                    <option value="PRIMEIRO" {% if semestre_atual.value == 'PRIMEIRO' %}selected{% endif %}>1º Semestre</option>
+                                    <option value="SEGUNDO" {% if semestre_atual.value == 'SEGUNDO' %}selected{% endif %}>2º Semestre</option>
+                                </select>
+                                <span class="input-group-text">/</span>
+                                <select id="filtro-ano-semestral" class="form-select">
+                                    {% for ano in range(ano_atual-2, ano_atual+1) %}
+                                    <option value="{{ ano }}" {% if ano == ano_atual %}selected{% endif %}>{{ ano }}</option>
+                                    {% endfor %}
+                                </select>
+                                <button id="btn-filtrar-semestral" class="btn btn-light btn-sm"><i class="fas fa-filter"></i></button>
+                            </div>
+                        </div>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button type="button" class="btn btn-light active" id="btn-ranking-mensal">Mensal</button>
+                            <button type="button" class="btn btn-light" id="btn-ranking-semestral">Semestral</button>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="card-body">
-                {% if ranking|length > 0 %}
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th width="80">Posição</th>
-                                <th>Integrante</th>
-                                <th>Categoria</th>
-                                <th>Data de Pagamento</th>
-                                <th>Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for item in ranking %}
-                            <tr>
-                                <td>
-                                    <div class="ranking-badge ranking-{{ item.posicao }}">{{ item.posicao }}</div>
-                                </td>
-                                <td>{{ item.integrante.nome }}</td>
-                                <td>{{ item.integrante.categoria.value }}</td>
-                                <td>{{ item.data_pagamento.strftime('%d/%m/%Y %H:%M') }}</td>
-                                <td>
-                                    <a href="{{ url_for('detalhes_integrante', integrante_id=item.integrante.id) }}" class="btn btn-sm btn-primary btn-action" title="Ver Detalhes">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                <!-- Conteúdo do Ranking Mensal -->
+                <div id="ranking-mensal">
+                    {% if ranking|length > 0 %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th width="80">Posição</th>
+                                    <th>Integrante</th>
+                                    <th>Categoria</th>
+                                    <th>Pontuação</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in ranking %}
+                                <tr>
+                                    <td>
+                                        <div class="ranking-badge ranking-{{ item.posicao }}">{{ item.posicao }}</div>
+                                    </td>
+                                    <td>{{ item.integrante.nome }}</td>
+                                    <td>{{ item.integrante.categoria.value }}</td>
+                                    <td>{{ item.pontos }}</td>
+                                    <td>
+                                        <a href="{{ url_for('detalhes_integrante', integrante_id=item.integrante.id) }}" class="btn btn-sm btn-primary btn-action" title="Ver Detalhes">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Ainda não há pagamentos registrados para este mês.
+                    </div>
+                    {% endif %}
                 </div>
-                {% else %}
-                <div class="alert alert-info mb-0">
-                    <i class="fas fa-info-circle me-2"></i>
-                    Ainda não há pagamentos registrados para este mês.
+                
+                <!-- Conteúdo do Ranking Semestral (inicialmente oculto) -->
+                <div id="ranking-semestral" style="display: none;">
+                    {% if ranking_semestral|default([])|length > 0 %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th width="80">Posição</th>
+                                    <th>Integrante</th>
+                                    <th>Categoria</th>
+                                    <th>Pontuação</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in ranking_semestral %}
+                                <tr>
+                                    <td>
+                                        <div class="ranking-badge ranking-{{ item.posicao }}">{{ item.posicao }}</div>
+                                    </td>
+                                    <td>{{ item.integrante.nome }}</td>
+                                    <td>{{ item.integrante.categoria.value }}</td>
+                                    <td>{{ item.pontos }}</td>
+                                    <td>
+                                        <a href="{{ url_for('detalhes_integrante', integrante_id=item.integrante.id) }}" class="btn btn-sm btn-primary btn-action" title="Ver Detalhes">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Ainda não há ranking semestral disponível para este período.
+                    </div>
+                    {% endif %}
                 </div>
-                {% endif %}
                 
                 <div class="text-center mt-3">
                     <a href="{{ url_for('ranking_completo') }}" class="btn btn-outline-primary me-2">
@@ -129,6 +264,53 @@
     
     <!-- Informações do Sistema -->
     <div class="col-md-4">
+            <div class="card mb-4" id="card-info-semestral" style="display: none;">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Informações do Ranking Semestral
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h5><i class="fas fa-trophy me-2"></i>Como funciona o ranking semestral?</h5>
+                        <p>O ranking semestral acumula pontos ao longo do semestre com base na ordem de pagamento de cada mês. Quanto mais cedo o pagamento for realizado, maior a pontuação.</p>
+                        <p><strong>Sistema de pontuação:</strong></p>
+                        <ul>
+                            <li>O primeiro a pagar em cada mês recebe {{ config_pontuacao.pontuacao_primeiro_colocado }} pontos</li>
+                            <li>Cada posição seguinte recebe menos {{ config_pontuacao.reducao_pontos_por_posicao }} pontos</li>
+                            <li>O ranking semestral soma os pontos acumulados em todos os meses do semestre</li>
+                        </ul>
+                        <p>A premiação ocorre semestralmente:</p>
+                        <ul>
+                            <li>Primeiro semestre: premiação em Junho</li>
+                            <li>Segundo semestre: premiação em Dezembro</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="card mb-4" id="card-info-mensal">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Informações do Ranking Mensal
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h5><i class="fas fa-trophy me-2"></i>Como funciona o ranking mensal?</h5>
+                        <p>O ranking mensal é baseado na ordem de pagamento. Quanto mais cedo o pagamento for realizado, maior a pontuação.</p>
+                        <p><strong>Sistema de pontuação:</strong></p>
+                        <ul>
+                            <li>O primeiro a pagar recebe {{ config_pontuacao.pontuacao_primeiro_colocado }} pontos</li>
+                            <li>Cada posição seguinte recebe menos {{ config_pontuacao.reducao_pontos_por_posicao }} pontos</li>
+                            <li>A pontuação mínima é de 10 pontos</li>
+                        </ul>
+                        <p>A premiação para o primeiro colocado é concedida mensalmente.</p>
+                    </div>
+                </div>
+            </div>
+
         <div class="card mb-4">
             <div class="card-header bg-primary text-white">
                 <h5 class="mb-0">
@@ -155,4 +337,277 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Inicializar estado dos cards de informação (mensal visível, semestral oculto)
+    $('#card-info-mensal').show();
+    $('#card-info-semestral').hide();
+    
+    // Inicializar título com mês e ano atuais
+    $('#ranking-titulo').text(`Ranking de Pagamentos - {{ mes_atual }}/{{ ano_atual }}`);
+    
+    // Obtém o semestre atual
+    const semestreAtual = '{{ semestre_atual.value }}';
+    const semestreTexto = semestreAtual === 'PRIMEIRO' ? '1º' : '2º';
+    
+    // Função para alternar para o ranking semestral
+    function mostrarRankingSemestral() {
+        $('#ranking-mensal').hide();
+        $('#ranking-semestral').show();
+        $('#filtro-mensal').hide();
+        $('#filtro-semestral').show();
+        $('#btn-ranking-mensal').removeClass('active');
+        $('#btn-ranking-semestral').addClass('active');
+        
+        // Garantir que o semestre atual está selecionado
+        $('#filtro-semestre').val(semestreAtual);
+        
+        // Atualizar o título com o semestre atual
+        $('#ranking-titulo').text(`Ranking de Pagamentos - ${semestreTexto} Semestre/${$('#filtro-ano-semestral').val()}`);
+        
+        // Mostrar informações do ranking semestral e esconder do mensal
+        $('#card-info-semestral').show();
+        $('#card-info-mensal').hide();
+    }
+    
+    // Função para alternar para o ranking mensal
+    function mostrarRankingMensal() {
+        $('#ranking-mensal').show();
+        $('#ranking-semestral').hide();
+        $('#filtro-mensal').show();
+        $('#filtro-semestral').hide();
+        $('#btn-ranking-mensal').addClass('active');
+        $('#btn-ranking-semestral').removeClass('active');
+        $('#ranking-titulo').text(`Ranking de Pagamentos - ${$('#filtro-mes').val()}/${$('#filtro-ano-mensal').val()}`);
+        
+        // Mostrar informações do ranking mensal e esconder do semestral
+        $('#card-info-mensal').show();
+        $('#card-info-semestral').hide();
+    }
+    
+    // Controladores para alternar entre os rankings
+    $('#btn-ranking-mensal').click(function() {
+        mostrarRankingMensal();
+    });
+    
+    $('#btn-ranking-semestral').click(function() {
+        mostrarRankingSemestral();
+    });
+    
+    // Usuário solicita ver a visualização semestral? Mostrar como padrão
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('view') === 'semestral') {
+        mostrarRankingSemestral();
+    }
+    
+    // Filtros para o ranking mensal
+    $('#btn-filtrar-mensal').click(function() {
+        const mes = $('#filtro-mes').val();
+        const ano = $('#filtro-ano-mensal').val();
+        carregarRankingMensal(mes, ano);
+    });
+    
+    // Filtros para o ranking semestral
+    $('#btn-filtrar-semestral').click(function() {
+        const semestre = $('#filtro-semestre').val();
+        const ano = $('#filtro-ano-semestral').val();
+        carregarRankingSemestral(semestre, ano);
+    });
+    
+    // Função para carregar o ranking mensal com AJAX
+    function carregarRankingMensal(mes, ano) {
+        $('#ranking-mensal').html('<div class="text-center p-5"><i class="fas fa-spinner fa-spin fa-2x"></i><p class="mt-2">Carregando ranking...</p></div>');
+        $('#ranking-titulo').text(`Ranking de Pagamentos - ${mes}/${ano}`);
+        
+        $.ajax({
+            url: '/api/ranking_mensal',
+            type: 'GET',
+            data: {
+                mes: mes,
+                ano: ano
+            },
+            dataType: 'json',
+            success: function(response) {
+                if (response.ranking && response.ranking.length > 0) {
+                    let tableHtml = `
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th width="80">Posição</th>
+                                    <th>Integrante</th>
+                                    <th>Categoria</th>
+                                    <th>Pontuação</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+                    
+                    response.ranking.forEach(function(item) {
+                        const data = new Date(item.data_pagamento);
+                        const dataFormatada = data.toLocaleDateString('pt-BR') + ' ' + 
+                                             data.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
+                        
+                        tableHtml += `
+                        <tr>
+                            <td>
+                                <div class="ranking-badge ranking-${item.posicao}">${item.posicao}</div>
+                            </td>
+                            <td>${item.integrante.nome}</td>
+                            <td>${item.integrante.categoria}</td>
+                            <td>${item.pontos}</td>
+                            <td>
+                                <a href="/integrante/${item.integrante.id}" class="btn btn-sm btn-primary btn-action" title="Ver Detalhes">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </td>
+                        </tr>`;
+                    });
+                    
+                    tableHtml += `
+                            </tbody>
+                        </table>
+                    </div>`;
+                    
+                    $('#ranking-mensal').html(tableHtml);
+                } else {
+                    $('#ranking-mensal').html(`
+                    <div class="alert alert-info mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Ainda não há pagamentos registrados para este mês.
+                    </div>`);
+                }
+            },
+            error: function() {
+                $('#ranking-mensal').html(`
+                <div class="alert alert-danger mb-0">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    Erro ao carregar o ranking. Tente novamente.
+                </div>`);
+            }
+        });
+    }
+    
+    // Função para carregar o ranking semestral com AJAX
+    function carregarRankingSemestral(semestre, ano) {
+        $('#ranking-semestral').html('<div class="text-center p-5"><i class="fas fa-spinner fa-spin fa-2x"></i><p class="mt-2">Carregando ranking...</p></div>');
+        const semestreTexto = semestre === 'PRIMEIRO' ? '1º' : '2º';
+        $('#ranking-titulo').text(`Ranking de Pagamentos - ${semestreTexto} Semestre/${ano}`);
+        
+        $.ajax({
+            url: '/api/ranking_semestral',
+            type: 'GET',
+            data: {
+                semestre: semestre,
+                ano: ano
+            },
+            dataType: 'json',
+            success: function(response) {
+                if (response.ranking && response.ranking.length > 0) {
+                    let tableHtml = `
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th width="80">Posição</th>
+                                    <th>Integrante</th>
+                                    <th>Categoria</th>
+                                    <th>Pontuação</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+                    
+                    response.ranking.forEach(function(item) {
+                        tableHtml += `
+                        <tr>
+                            <td>
+                                <div class="ranking-badge ranking-${item.posicao}">${item.posicao}</div>
+                            </td>
+                            <td>${item.integrante.nome}</td>
+                            <td>${item.integrante.categoria}</td>
+                            <td>${item.pontos}</td>
+                            <td>
+                                <a href="/integrante/${item.integrante.id}" class="btn btn-sm btn-primary btn-action" title="Ver Detalhes">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </td>
+                        </tr>`;
+                    });
+                    
+                    tableHtml += `
+                            </tbody>
+                        </table>
+                    </div>`;
+                    
+                    $('#ranking-semestral').html(tableHtml);
+                } else {
+                    $('#ranking-semestral').html(`
+                    <div class="alert alert-info mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Ainda não há ranking semestral disponível para este período.
+                    </div>`);
+                }
+            },
+            error: function() {
+                $('#ranking-semestral').html(`
+                <div class="alert alert-danger mb-0">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    Erro ao carregar o ranking. Tente novamente.
+                </div>`);
+            }
+        });
+    }
+    
+    // Função para atualizar o gráfico de pontuação quando um filtro for selecionado
+    $('.filter-pontuacao').click(function(e) {
+        e.preventDefault();
+        
+        // Obter tipo e valor do filtro
+        const tipo = $(this).data('tipo');
+        const valor = $(this).data('valor');
+        
+        // Atualizar informação de filtro mostrada
+        let textoFiltro = "";
+        if (tipo === 'mes') {
+            textoFiltro = `Mês ${valor}/{{ ano_atual }}`;
+        } else if (tipo === 'semestre') {
+            const nomeSemestre = valor === 'PRIMEIRO' ? 'Primeiro' : 'Segundo';
+            textoFiltro = `${nomeSemestre} Semestre/{{ ano_atual }}`;
+        }
+        $('#filtro-atual').text(textoFiltro);
+        
+        // Mostrar indicador de carregamento
+        $('#grafico-wrapper').html('<div class="text-center p-5"><i class="fas fa-spinner fa-spin fa-2x"></i><p class="mt-2">Carregando gráfico...</p></div>');
+        
+        // Preparar dados para envio
+        const requestData = {};
+        requestData["ano"] = parseInt("{{ ano_atual }}");
+        
+        // Adicionar parâmetro específico (mes ou semestre)
+        requestData[tipo] = valor;
+        
+        // Fazer requisição AJAX para obter o novo gráfico
+        $.ajax({
+            url: '/api/grafico_pontuacao',
+            type: 'GET',
+            data: requestData,
+            dataType: 'json',
+            success: function(response) {
+                // Atualizar a imagem do gráfico com timestamp para evitar cache
+                const timestamp = new Date().getTime();
+                const imgUrl = `{{ url_for('static', filename='graphs/') }}${response.grafico}?t=${timestamp}`;
+                
+                $('#grafico-wrapper').html('<img id="grafico-pontuacao" src="' + imgUrl + '" alt="Gráfico de Pontuação dos Integrantes" class="img-fluid">');
+            },
+            error: function() {
+                $('#grafico-wrapper').html('<div class="alert alert-danger"><i class="fas fa-exclamation-circle me-2"></i>Erro ao carregar o gráfico. Tente novamente.</div>');
+            }
+        });
+    });
+});
+</script>
 {% endblock %}
