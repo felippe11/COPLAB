@@ -49,43 +49,56 @@ def register_routes(app):
         return config
 
     # Função para gerar gráfico de saldo vs gastos e entradas
-    def gerar_grafico_saldo_gastos():
+    def gerar_grafico_saldo_gastos(mes=None, semestre=None, ano=None):
         # Criar diretório para gráficos se não existir
         graphs_dir = os.path.join(app.static_folder, 'graphs')
         os.makedirs(graphs_dir, exist_ok=True)
         
-        # Obter dados históricos de pagamentos e gastos por mês
-        # Vamos considerar os últimos 6 meses
+        # Se não foi especificado mês ou semestre, usar mês atual
         data_atual = datetime.now()
-        meses = []
+        if mes is None and semestre is None:
+            mes = data_atual.month
+        if ano is None:
+            ano = data_atual.year
+            
+        # Preparar arrays para dados
+        labels_meses = []
         saldos = []
         gastos_mensais = []
         entradas_mensais = []
         
-        # Coletar dados dos últimos 6 meses
-        for i in range(5, -1, -1):  # De 5 meses atrás até o mês atual
-            # Calcular o mês e ano de referência
-            mes = data_atual.month - i
-            ano = data_atual.year
+        # Determinar quais meses buscar
+        meses_para_buscar = []
+        if mes is not None:
+            # Se for filtro mensal, buscar apenas o mês específico
+            meses_para_buscar = [(mes, ano)]
+            titulo = f"Entradas, Gastos e Saldo - {mes}/{ano}"
+            nome_arquivo = f'financeiro_{mes}_{ano}.png'
+        else:
+            # Se for filtro semestral, buscar todos os meses do semestre
+            if semestre == SemestreEnum.PRIMEIRO:
+                meses_para_buscar = [(m, ano) for m in range(1, 7)]  # Janeiro a Junho
+                titulo = f"Entradas, Gastos e Saldo - 1º Semestre/{ano}"
+            else:
+                meses_para_buscar = [(m, ano) for m in range(7, 13)]  # Julho a Dezembro
+                titulo = f"Entradas, Gastos e Saldo - 2º Semestre/{ano}"
+            nome_arquivo = f'financeiro_semestre_{semestre.name}_{ano}.png'
             
-            # Ajustar para meses anteriores ao ano atual
-            while mes <= 0:
-                mes += 12
-                ano -= 1
-                
+        # Coletar dados dos meses determinados
+        for mes_ref, ano_ref in meses_para_buscar:
             # Obter pagamentos do mês
             pagamentos_mes = Pagamento.query.filter_by(
-                mes_referencia=mes,
-                ano_referencia=ano,
+                mes_referencia=mes_ref,
+                ano_referencia=ano_ref,
                 status=StatusPagamentoEnum.VALIDADO
             ).all()
             
-            # Obter gastos do mês (aproximado pela data do gasto)
-            primeiro_dia = datetime(ano, mes, 1)
-            if mes == 12:
-                ultimo_dia = datetime(ano + 1, 1, 1)
+            # Obter gastos do mês
+            primeiro_dia = datetime(ano_ref, mes_ref, 1)
+            if mes_ref == 12:
+                ultimo_dia = datetime(ano_ref + 1, 1, 1)
             else:
-                ultimo_dia = datetime(ano, mes + 1, 1)
+                ultimo_dia = datetime(ano_ref, mes_ref + 1, 1)
                 
             gastos_mes = Gasto.query.filter(
                 Gasto.data_gasto >= primeiro_dia,
@@ -97,39 +110,118 @@ def register_routes(app):
             total_gastos_mes = sum(gasto.valor for gasto in gastos_mes)
             saldo_liquido_mes = total_arrecadado_mes - total_gastos_mes
             
-            # Adicionar aos arrays para o gráfico
-            meses.append(f"{mes}/{ano}")
-            gastos_mensais.append(total_gastos_mes)
-            entradas_mensais.append(total_arrecadado_mes)
-            saldos.append(saldo_liquido_mes)
+            # Adicionar aos arrays apenas se houver movimentação neste mês
+            if total_arrecadado_mes > 0 or total_gastos_mes > 0 or saldo_liquido_mes != 0:
+                labels_meses.append(f"{mes_ref}/{ano_ref}")
+                gastos_mensais.append(total_gastos_mes)
+                entradas_mensais.append(total_arrecadado_mes)
+                saldos.append(saldo_liquido_mes)
+        
+        # Se não houver dados para mostrar, criar gráfico com mensagem informativa
+        if not labels_meses:
+            plt.figure(figsize=(12, 6))
+            plt.rcParams.update({'font.size': 12})
+            plt.title(titulo, fontsize=18)
+            plt.figtext(0.5, 0.5, "Não há movimentações financeiras registradas neste período", 
+                     horizontalalignment='center', verticalalignment='center', fontsize=14)
+            
+            grafico_path = os.path.join(graphs_dir, nome_arquivo)
+            plt.savefig(grafico_path, bbox_inches='tight', dpi=120)
+            plt.close()
+            
+            return nome_arquivo
         
         # Criar o gráfico
-        plt.figure(figsize=(10, 5))
+        plt.figure(figsize=(12, 6))
+        
+        # Configurar fonte padrão maior para todo o gráfico
+        plt.rcParams.update({'font.size': 12})
         
         # Plotar barras para saldo, gastos e entradas
         bar_width = 0.25
-        index = range(len(meses))
+        index = range(len(labels_meses))
         
-        plt.bar([i - bar_width for i in index], entradas_mensais, bar_width, label='Entrada de Pagamentos', color='green', alpha=0.7)
-        plt.bar([i for i in index], gastos_mensais, bar_width, label='Gastos', color='red', alpha=0.7)
-        plt.bar([i + bar_width for i in index], saldos, bar_width, label='Saldo em Caixa', color='blue', alpha=0.7)
+        # Criar as barras com valores sobre elas
+        entradas = plt.bar([i - bar_width for i in index], entradas_mensais, bar_width, label='Entrada de Pagamentos', color='green', alpha=0.7)
+        gastos = plt.bar([i for i in index], gastos_mensais, bar_width, label='Gastos', color='red', alpha=0.7)
+        saldos_bar = plt.bar([i + bar_width for i in index], saldos, bar_width, label='Saldo em Caixa', color='blue', alpha=0.7)
         
-        # Configurar o gráfico
-        plt.xlabel('Mês/Ano')
-        plt.ylabel('Valor (R$)')
-        plt.title('Progresso Financeiro: Entradas, Gastos e Saldo')
-        plt.xticks(index, meses)
-        plt.legend()
+        # Adicionar valores sobre ou sob as barras, dependendo se são positivos ou negativos
+        def adicionar_valores_barras(barras, valores):
+            for barra, valor in zip(barras, valores):
+                altura = barra.get_height()
+                # Definir a posição vertical com base no sinal do valor
+                if valor >= 0:
+                    # Valores positivos: posicionados acima da barra
+                    y_pos = altura + 5
+                    va = 'bottom'
+                else:
+                    # Valores negativos: posicionados abaixo da barra
+                    y_pos = altura - 15  # Deslocar um pouco mais para baixo
+                    va = 'top'
+                
+                plt.text(barra.get_x() + barra.get_width()/2., y_pos,
+                        f'R$ {valor:.0f}', ha='center', va=va, fontsize=10, fontweight='bold')
+        
+        adicionar_valores_barras(entradas, entradas_mensais)
+        adicionar_valores_barras(gastos, gastos_mensais)
+        adicionar_valores_barras(saldos_bar, saldos)
+        
+        # Configurar o gráfico com fontes maiores
+        plt.xlabel('Mês/Ano', fontsize=14)
+        plt.ylabel('Valor (R$)', fontsize=14)
+        plt.title(titulo, fontsize=18)
+        plt.xticks(index, labels_meses, fontsize=12)
+        plt.yticks(fontsize=12)
+        plt.legend(fontsize=12)
         plt.grid(axis='y', linestyle='--', alpha=0.7)
         
-        # Salvar o gráfico
-        grafico_path = os.path.join(graphs_dir, 'financeiro_completo.png')
-        plt.savefig(grafico_path, bbox_inches='tight', dpi=100)
+        # Ajustar layout
+        plt.tight_layout()
+        
+        # Salvar o gráfico com qualidade maior
+        grafico_path = os.path.join(graphs_dir, nome_arquivo)
+        plt.savefig(grafico_path, bbox_inches='tight', dpi=120)
         plt.close()
         
         # Retornar o nome do arquivo para uso no template
-        return 'financeiro_completo.png'
-    
+        return nome_arquivo
+        
+    # API para obter o gráfico financeiro
+    @app.route('/api/grafico_financeiro')
+    def api_grafico_financeiro():
+        # Obter parâmetros da URL
+        mes = request.args.get('mes')
+        semestre = request.args.get('semestre')
+        ano = request.args.get('ano', datetime.now().year)
+        
+        # Validar e converter parâmetros
+        if ano and ano.isdigit():
+            ano = int(ano)
+        else:
+            ano = datetime.now().year
+            
+        if mes and mes.isdigit() and 1 <= int(mes) <= 12:
+            mes = int(mes)
+            semestre = None
+            grafico = gerar_grafico_saldo_gastos(mes=mes, ano=ano)
+        elif semestre and semestre in ['PRIMEIRO', 'SEGUNDO']:
+            mes = None
+            semestre = SemestreEnum[semestre]
+            grafico = gerar_grafico_saldo_gastos(semestre=semestre, ano=ano)
+        else:
+            # Default: mês atual
+            mes = datetime.now().month
+            semestre = None
+            grafico = gerar_grafico_saldo_gastos(mes=mes, ano=ano)
+            
+        return jsonify({
+            'grafico': grafico,
+            'mes': mes,
+            'semestre': semestre.name if semestre else None,
+            'ano': ano
+        })
+
     # Rota para o dashboard principal
     @app.route('/')
     def index():
@@ -160,8 +252,8 @@ def register_routes(app):
         # Obter configurações de pontuação
         config_pontuacao = obter_configuracoes_pontuacao()
         
-        # Gerar gráfico de saldo vs gastos
-        grafico_nome = gerar_grafico_saldo_gastos()
+        # Gerar gráfico de saldo vs gastos para o mês atual
+        grafico_nome = gerar_grafico_saldo_gastos(mes=mes_atual, ano=ano_atual)
         
         # Gerar gráfico de pontuação dos integrantes para o mês atual
         grafico_pontuacao = gerar_grafico_pontuacao(mes=mes_atual, ano=ano_atual)
@@ -197,9 +289,7 @@ def register_routes(app):
         config = obter_configuracoes_pontuacao()
         pontuacao_primeiro = config.pontuacao_primeiro_colocado
         reducao_pontos = config.reducao_pontos_por_posicao
-        
-        # Pontuação mínima é 10% da pontuação do primeiro colocado
-        pontuacao_minima = max(10, int(pontuacao_primeiro * 0.1))
+        pontuacao_minima = config.pontuacao_minima
         
         # Lista para armazenar pagamentos após recálculo
         pagamentos_processados = []
@@ -244,9 +334,7 @@ def register_routes(app):
         config = obter_configuracoes_pontuacao()
         pontuacao_primeiro = config.pontuacao_primeiro_colocado
         reducao_pontos = config.reducao_pontos_por_posicao
-        
-        # Pontuação mínima é 10% da pontuação do primeiro colocado
-        pontuacao_minima = max(10, int(pontuacao_primeiro * 0.1))
+        pontuacao_minima = config.pontuacao_minima
         
         # Dicionário para armazenar a pontuação acumulada por integrante
         pontuacoes = {}
@@ -741,6 +829,7 @@ def register_routes(app):
             # Obter valores do formulário
             pontuacao_primeiro = request.form.get('pontuacao_primeiro', 100, type=int)
             reducao_pontos = request.form.get('reducao_pontos', 10, type=int)
+            pontuacao_minima = request.form.get('pontuacao_minima', 10, type=int)
             
             # Validar valores
             if pontuacao_primeiro < 10 or pontuacao_primeiro > 1000:
@@ -749,6 +838,10 @@ def register_routes(app):
                 
             if reducao_pontos < 1 or reducao_pontos > pontuacao_primeiro:
                 flash('A redução de pontos deve estar entre 1 e a pontuação do primeiro colocado.', 'danger')
+                return redirect(url_for('admin_dashboard'))
+                
+            if pontuacao_minima < 1 or pontuacao_minima > pontuacao_primeiro:
+                flash('A pontuação mínima deve estar entre 1 e a pontuação do primeiro colocado.', 'danger')
                 return redirect(url_for('admin_dashboard'))
             
             # Buscar configuração existente ou criar nova
@@ -760,6 +853,7 @@ def register_routes(app):
             # Atualizar configuração
             config.pontuacao_primeiro_colocado = pontuacao_primeiro
             config.reducao_pontos_por_posicao = reducao_pontos
+            config.pontuacao_minima = pontuacao_minima
             config.data_atualizacao = datetime.utcnow()
             config.administrador_id = admin_id
             
@@ -1672,9 +1766,14 @@ def register_routes(app):
             # Texto explicativo
             subtitulo = f"Primeiro a pagar = {pontuacao_primeiro} pontos, com redução de {reducao_pontos} pontos por posição"
             
-            # Limites do eixo Y para gráfico mensal
+            # Limites do eixo Y para gráfico mensal - agora dinâmico
             ylim_min = 0
-            ylim_max = pontuacao_primeiro + 10
+            # Calcular o máximo com base nos dados reais
+            if rankings:
+                max_pontos = max([r['pontos'] for r in rankings]) if rankings else pontuacao_primeiro
+                ylim_max = max_pontos * 1.1  # 10% a mais que o valor máximo para melhor visualização
+            else:
+                ylim_max = pontuacao_primeiro + 10  # Valor padrão se não houver dados
             
             arquivo = f'pontuacao_mensal_{mes}_{ano}.png'
         else:
@@ -1686,10 +1785,10 @@ def register_routes(app):
             
             # Para o semestral, os limites dependem dos dados
             ylim_min = 0
-            # Calculamos o máximo com base nos dados, mas no mínimo 100 pontos
+            # Calculamos o máximo com base nos dados
             if rankings:
                 max_pontos = max([r['pontos'] for r in rankings]) if rankings else pontuacao_primeiro
-                ylim_max = max(pontuacao_primeiro * 6, max_pontos * 1.1)  # 10% a mais que o valor máximo
+                ylim_max = max_pontos * 1.1  # 10% a mais que o valor máximo
             else:
                 ylim_max = pontuacao_primeiro * 6  # Valor padrão se não houver dados
             
@@ -1701,11 +1800,11 @@ def register_routes(app):
         if not rankings:
             # Se não houver dados, criar um gráfico vazio
             plt.figure(figsize=(10, 6))
-            plt.title(f"{titulo}")
+            plt.title(f"{titulo}", fontsize=18)
             plt.figtext(0.5, 0.5, "Não há pontuações registradas para este período", 
-                     horizontalalignment='center', verticalalignment='center', fontsize=12)
+                     horizontalalignment='center', verticalalignment='center', fontsize=14)
             plt.figtext(0.5, 0.45, subtitulo, 
-                     horizontalalignment='center', verticalalignment='center', fontsize=10, 
+                     horizontalalignment='center', verticalalignment='center', fontsize=12, 
                      style='italic', color='gray')
             
             grafico_path = os.path.join(graphs_dir, arquivo)
@@ -1725,10 +1824,13 @@ def register_routes(app):
         # Criar o gráfico
         plt.figure(figsize=(12, 7))
         
+        # Configurar fonte padrão maior para todo o gráfico
+        plt.rcParams.update({'font.size': 12})
+        
         # Adicionar linhas de referência específicas por tipo de gráfico
         if mes is not None:
             # Para gráfico mensal, linhas a cada 'reducao_pontos'
-            for p in range(0, pontuacao_primeiro + reducao_pontos, reducao_pontos):
+            for p in range(0, int(ylim_max) + reducao_pontos, reducao_pontos):
                 plt.axhline(y=p, color='gray', linestyle='--', alpha=0.3)
         else:
             # Para gráfico semestral, linhas a cada 'pontuacao_primeiro'
@@ -1739,30 +1841,33 @@ def register_routes(app):
         # Plotar as barras
         barras = plt.bar(nomes, pontos, color=cores, width=0.6)
         
-        # Adicionar valores sobre as barras
+        # Adicionar valores sobre as barras com fonte maior
         for barra in barras:
             altura = barra.get_height()
             plt.text(barra.get_x() + barra.get_width()/2., altura + (ylim_max * 0.01),
-                    f'{int(altura)}', ha='center', va='bottom', fontweight='bold')
+                    f'{int(altura)}', ha='center', va='bottom', fontweight='bold', fontsize=14)
         
-        # Configurar o gráfico
-        plt.xlabel('Integrantes')
-        plt.ylabel('Pontos')
-        plt.title(titulo, fontsize=16, pad=20)
+        # Configurar o gráfico com fontes maiores
+        plt.xlabel('Integrantes', fontsize=14)
+        plt.ylabel('Pontos', fontsize=14)
+        plt.title(titulo, fontsize=18, pad=20)
         
         # Adicionar subtítulo
-        plt.figtext(0.5, 0.01, subtitulo, ha='center', fontsize=10, style='italic')
+        plt.figtext(0.5, 0.01, subtitulo, ha='center', fontsize=12, style='italic')
         
         # Definir limites do eixo Y
         plt.ylim(ylim_min, ylim_max)
         
-        plt.xticks(rotation=45, ha='right')
+        # Aumentar tamanho das fontes dos ticks
+        plt.xticks(rotation=45, ha='right', fontsize=12)
+        plt.yticks(fontsize=12)
+        
         plt.tight_layout()
         plt.grid(axis='y', linestyle='--', alpha=0.3)
         
-        # Salvar o gráfico
+        # Salvar o gráfico com qualidade maior
         grafico_path = os.path.join(graphs_dir, arquivo)
-        plt.savefig(grafico_path, bbox_inches='tight', dpi=100)
+        plt.savefig(grafico_path, bbox_inches='tight', dpi=120)
         plt.close()
         
         # Retornar o nome do arquivo para uso no template

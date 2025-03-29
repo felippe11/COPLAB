@@ -71,13 +71,61 @@
     <div class="col-md-6">
         <div class="card">
             <div class="card-header bg-primary text-white">
-                <h5 class="mb-0">
-                    <i class="fas fa-chart-line me-2"></i>
-                    Entradas, Gastos e Saldo
-                </h5>
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-line me-2"></i>
+                        Entradas, Gastos e Saldo
+                    </h5>
+                </div>
             </div>
             <div class="card-body text-center">
-                <img src="{{ url_for('static', filename='graphs/' + grafico_nome) }}" alt="Gráfico de Entradas, Gastos e Saldo" class="img-fluid">
+                <div class="d-flex align-items-center">
+                    <!-- Filtro Mês/Ano para o Gráfico Financeiro -->
+                    <div id="filtro-financeiro-mensal" class="input-group input-group-sm me-2">
+                        <select id="filtro-financeiro-mes" class="form-select">
+                            {% for i in range(1, 13) %}
+                            <option value="{{ i }}" {% if i == mes_atual|int %}selected{% endif %}>{{ i }}</option>
+                            {% endfor %}
+                        </select>
+                        <span class="input-group-text">/</span>
+                        <select id="filtro-financeiro-ano-mensal" class="form-select">
+                            {% for ano in range(ano_atual-2, ano_atual+1) %}
+                            <option value="{{ ano }}" {% if ano == ano_atual %}selected{% endif %}>{{ ano }}</option>
+                            {% endfor %}
+                        </select>
+                        <button id="btn-filtrar-financeiro-mensal" class="btn btn-light btn-sm">
+                            <i class="fas fa-filter"></i>
+                        </button>
+                    </div>
+
+                    <!-- Filtro Semestre/Ano para o Gráfico Financeiro -->
+                    <div id="filtro-financeiro-semestral" class="input-group input-group-sm me-2" style="display: none;">
+                        <select id="filtro-financeiro-semestre" class="form-select">
+                            <option value="PRIMEIRO" {% if semestre_atual.value == 'PRIMEIRO' %}selected{% endif %}>1º Sem</option>
+                            <option value="SEGUNDO" {% if semestre_atual.value == 'SEGUNDO' %}selected{% endif %}>2º Sem</option>
+                        </select>
+                        <span class="input-group-text">/</span>
+                        <select id="filtro-financeiro-ano-semestral" class="form-select">
+                            {% for ano in range(ano_atual-2, ano_atual+1) %}
+                            <option value="{{ ano }}" {% if ano == ano_atual %}selected{% endif %}>{{ ano }}</option>
+                            {% endfor %}
+                        </select>
+                        <button id="btn-filtrar-financeiro-semestral" class="btn btn-light btn-sm">
+                            <i class="fas fa-filter"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-light active" id="btn-financeiro-mensal">Mês</button>
+                        <button type="button" class="btn btn-light" id="btn-financeiro-semestral">Semestre</button>
+                    </div>
+                </div>
+                <div id="grafico-financeiro-wrapper">
+                    <img id="grafico-financeiro" src="{{ url_for('static', filename='graphs/' + grafico_nome) }}" alt="Gráfico de Entradas, Gastos e Saldo" class="img-fluid">
+                </div>
+                <div class="filtro-info mt-2 text-muted">
+                    <small>Mostrando: <span id="filtro-financeiro-atual">Mês {{ mes_atual }}/{{ ano_atual }}</span></small>
+                </div>
             </div>
         </div>
     </div>
@@ -89,24 +137,51 @@
                         <i class="fas fa-trophy me-2"></i>
                         Pontuação dos Integrantes
                     </h5>
-                    <div class="dropdown">
-                        <button class="btn btn-sm btn-light dropdown-toggle" type="button" id="filterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                            Filtrar
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="filterDropdown">
-                            <li><h6 class="dropdown-header">Por Mês</h6></li>
-                            {% for i in range(1, 13) %}
-                            <li><a class="dropdown-item filter-pontuacao" href="#" data-tipo="mes" data-valor="{{ i }}">{{ i }}</a></li>
-                            {% endfor %}
-                            <li><hr class="dropdown-divider"></li>
-                            <li><h6 class="dropdown-header">Por Semestre</h6></li>
-                            <li><a class="dropdown-item filter-pontuacao" href="#" data-tipo="semestre" data-valor="PRIMEIRO">Primeiro</a></li>
-                            <li><a class="dropdown-item filter-pontuacao" href="#" data-tipo="semestre" data-valor="SEGUNDO">Segundo</a></li>
-                        </ul>
-                    </div>
+
                 </div>
             </div>
             <div class="card-body text-center">
+                <div class="d-flex align-items-center">
+                    <!-- Filtro Mês/Ano -->
+                    <div id="filtro-grafico-mensal" class="input-group input-group-sm me-2">
+                        <select id="filtro-grafico-mes" class="form-select">
+                            {% for i in range(1, 13) %}
+                            <option value="{{ i }}" {% if i == mes_atual|int %}selected{% endif %}>{{ i }}</option>
+                            {% endfor %}
+                        </select>
+                        <span class="input-group-text">/</span>
+                        <select id="filtro-grafico-ano-mensal" class="form-select">
+                            {% for ano in range(ano_atual-2, ano_atual+1) %}
+                            <option value="{{ ano }}" {% if ano == ano_atual %}selected{% endif %}>{{ ano }}</option>
+                            {% endfor %}
+                        </select>
+                        <button id="btn-filtrar-grafico-mensal" class="btn btn-light btn-sm">
+                            <i class="fas fa-filter"></i>
+                        </button>
+                    </div>
+
+                    <!-- Filtro Semestre/Ano -->
+                    <div id="filtro-grafico-semestral" class="input-group input-group-sm me-2" style="display: none;">
+                        <select id="filtro-grafico-semestre" class="form-select">
+                            <option value="PRIMEIRO" {% if semestre_atual.value == 'PRIMEIRO' %}selected{% endif %}>1º Sem</option>
+                            <option value="SEGUNDO" {% if semestre_atual.value == 'SEGUNDO' %}selected{% endif %}>2º Sem</option>
+                        </select>
+                        <span class="input-group-text">/</span>
+                        <select id="filtro-grafico-ano-semestral" class="form-select">
+                            {% for ano in range(ano_atual-2, ano_atual+1) %}
+                            <option value="{{ ano }}" {% if ano == ano_atual %}selected{% endif %}>{{ ano }}</option>
+                            {% endfor %}
+                        </select>
+                        <button id="btn-filtrar-grafico-semestral" class="btn btn-light btn-sm">
+                            <i class="fas fa-filter"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-light active" id="btn-grafico-mensal">Mês</button>
+                        <button type="button" class="btn btn-light" id="btn-grafico-semestral">Semestre</button>
+                    </div>
+                </div>
                 <div id="grafico-wrapper">
                     <img id="grafico-pontuacao" src="{{ url_for('static', filename='graphs/' + grafico_pontuacao) }}" alt="Gráfico de Pontuação dos Integrantes" class="img-fluid">
                 </div>
@@ -128,46 +203,47 @@
                         <i class="fas fa-trophy me-2"></i>
                         <span id="ranking-titulo">Ranking de Pagamentos - {{ mes_atual }}/{{ ano_atual }}</span>
                     </h5>
-                    <div class="d-flex">
-                        <div id="filtros-ranking" class="me-2">
-                            <!-- Filtros do Ranking Mensal -->
-                            <div id="filtro-mensal" class="input-group input-group-sm">
-                                <select id="filtro-mes" class="form-select">
-                                    {% for i in range(1, 13) %}
-                                    <option value="{{ i }}" {% if i == mes_atual|int %}selected{% endif %}>{{ i }}</option>
-                                    {% endfor %}
-                                </select>
-                                <span class="input-group-text">/</span>
-                                <select id="filtro-ano-mensal" class="form-select">
-                                    {% for ano in range(ano_atual-2, ano_atual+1) %}
-                                    <option value="{{ ano }}" {% if ano == ano_atual %}selected{% endif %}>{{ ano }}</option>
-                                    {% endfor %}
-                                </select>
-                                <button id="btn-filtrar-mensal" class="btn btn-light btn-sm"><i class="fas fa-filter"></i></button>
-                            </div>
-                            <!-- Filtros do Ranking Semestral (inicialmente oculto) -->
-                            <div id="filtro-semestral" class="input-group input-group-sm" style="display: none;">
-                                <select id="filtro-semestre" class="form-select">
-                                    <option value="PRIMEIRO" {% if semestre_atual.value == 'PRIMEIRO' %}selected{% endif %}>1º Semestre</option>
-                                    <option value="SEGUNDO" {% if semestre_atual.value == 'SEGUNDO' %}selected{% endif %}>2º Semestre</option>
-                                </select>
-                                <span class="input-group-text">/</span>
-                                <select id="filtro-ano-semestral" class="form-select">
-                                    {% for ano in range(ano_atual-2, ano_atual+1) %}
-                                    <option value="{{ ano }}" {% if ano == ano_atual %}selected{% endif %}>{{ ano }}</option>
-                                    {% endfor %}
-                                </select>
-                                <button id="btn-filtrar-semestral" class="btn btn-light btn-sm"><i class="fas fa-filter"></i></button>
-                            </div>
-                        </div>
-                        <div class="btn-group btn-group-sm" role="group">
-                            <button type="button" class="btn btn-light active" id="btn-ranking-mensal">Mensal</button>
-                            <button type="button" class="btn btn-light" id="btn-ranking-semestral">Semestral</button>
-                        </div>
-                    </div>
+
                 </div>
             </div>
-            <div class="card-body">
+            <div class="card-body" id="ranking-container">
+                <div class="d-flex">
+                    <div id="filtros-ranking" class="me-2">
+                        <!-- Filtros do Ranking Mensal -->
+                        <div id="filtro-mensal" class="input-group input-group-sm">
+                            <select id="filtro-mes" class="form-select">
+                                {% for i in range(1, 13) %}
+                                <option value="{{ i }}" {% if i == mes_atual|int %}selected{% endif %}>{{ i }}</option>
+                                {% endfor %}
+                            </select>
+                            <span class="input-group-text">/</span>
+                            <select id="filtro-ano-mensal" class="form-select">
+                                {% for ano in range(ano_atual-2, ano_atual+1) %}
+                                <option value="{{ ano }}" {% if ano == ano_atual %}selected{% endif %}>{{ ano }}</option>
+                                {% endfor %}
+                            </select>
+                            <button id="btn-filtrar-mensal" class="btn btn-light btn-sm"><i class="fas fa-filter"></i></button>
+                        </div>
+                        <!-- Filtros do Ranking Semestral (inicialmente oculto) -->
+                        <div id="filtro-semestral" class="input-group input-group-sm" style="display: none;">
+                            <select id="filtro-semestre" class="form-select">
+                                <option value="PRIMEIRO" {% if semestre_atual.value == 'PRIMEIRO' %}selected{% endif %}>1º Semestre</option>
+                                <option value="SEGUNDO" {% if semestre_atual.value == 'SEGUNDO' %}selected{% endif %}>2º Semestre</option>
+                            </select>
+                            <span class="input-group-text">/</span>
+                            <select id="filtro-ano-semestral" class="form-select">
+                                {% for ano in range(ano_atual-2, ano_atual+1) %}
+                                <option value="{{ ano }}" {% if ano == ano_atual %}selected{% endif %}>{{ ano }}</option>
+                                {% endfor %}
+                            </select>
+                            <button id="btn-filtrar-semestral" class="btn btn-light btn-sm"><i class="fas fa-filter"></i></button>
+                        </div>
+                    </div>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-light active" id="btn-ranking-mensal">Mensal</button>
+                        <button type="button" class="btn btn-light" id="btn-ranking-semestral">Semestral</button>
+                    </div>
+                </div>
                 <!-- Conteúdo do Ranking Mensal -->
                 <div id="ranking-mensal">
                     {% if ranking|length > 0 %}
@@ -179,7 +255,6 @@
                                     <th>Integrante</th>
                                     <th>Categoria</th>
                                     <th>Pontuação</th>
-                                    <th>Ações</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -191,11 +266,6 @@
                                     <td>{{ item.integrante.nome }}</td>
                                     <td>{{ item.integrante.categoria.value }}</td>
                                     <td>{{ item.pontos }}</td>
-                                    <td>
-                                        <a href="{{ url_for('detalhes_integrante', integrante_id=item.integrante.id) }}" class="btn btn-sm btn-primary btn-action" title="Ver Detalhes">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
-                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -220,7 +290,6 @@
                                     <th>Integrante</th>
                                     <th>Categoria</th>
                                     <th>Pontuação</th>
-                                    <th>Ações</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -232,11 +301,6 @@
                                     <td>{{ item.integrante.nome }}</td>
                                     <td>{{ item.integrante.categoria.value }}</td>
                                     <td>{{ item.pontos }}</td>
-                                    <td>
-                                        <a href="{{ url_for('detalhes_integrante', integrante_id=item.integrante.id) }}" class="btn btn-sm btn-primary btn-action" title="Ver Detalhes">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
-                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -250,14 +314,7 @@
                     {% endif %}
                 </div>
                 
-                <div class="text-center mt-3">
-                    <a href="{{ url_for('ranking_completo') }}" class="btn btn-outline-primary me-2">
-                        <i class="fas fa-list me-1"></i> Ver Ranking Mensal
-                    </a>
-                    <a href="{{ url_for('ranking_semestral') }}" class="btn btn-outline-primary">
-                        <i class="fas fa-award me-1"></i> Ver Ranking Semestral
-                    </a>
-                </div>
+
             </div>
         </div>
     </div>
@@ -277,14 +334,15 @@
                         <p>O ranking semestral acumula pontos ao longo do semestre com base na ordem de pagamento de cada mês. Quanto mais cedo o pagamento for realizado, maior a pontuação.</p>
                         <p><strong>Sistema de pontuação:</strong></p>
                         <ul>
-                            <li>O primeiro a pagar em cada mês recebe {{ config_pontuacao.pontuacao_primeiro_colocado }} pontos</li>
-                            <li>Cada posição seguinte recebe menos {{ config_pontuacao.reducao_pontos_por_posicao }} pontos</li>
-                            <li>O ranking semestral soma os pontos acumulados em todos os meses do semestre</li>
+                            <li>O primeiro a pagar em cada mês recebe {{ config_pontuacao.pontuacao_primeiro_colocado }} pontos;</li>
+                            <li>Cada posição seguinte recebe menos {{ config_pontuacao.reducao_pontos_por_posicao }} pontos;</li>
+                            <li>A pontuação mínima é de {{ config_pontuacao.pontuacao_minima }} pontos;</li>
+                            <li>O ranking semestral soma os pontos acumulados em todos os meses do semestre.</li>
                         </ul>
                         <p>A premiação ocorre semestralmente:</p>
                         <ul>
-                            <li>Primeiro semestre: premiação em Junho</li>
-                            <li>Segundo semestre: premiação em Dezembro</li>
+                            <li>Primeiro semestre: premiação em Junho;</li>
+                            <li>Segundo semestre: premiação em Dezembro.</li>
                         </ul>
                     </div>
                 </div>
@@ -302,9 +360,9 @@
                         <p>O ranking mensal é baseado na ordem de pagamento. Quanto mais cedo o pagamento for realizado, maior a pontuação.</p>
                         <p><strong>Sistema de pontuação:</strong></p>
                         <ul>
-                            <li>O primeiro a pagar recebe {{ config_pontuacao.pontuacao_primeiro_colocado }} pontos</li>
-                            <li>Cada posição seguinte recebe menos {{ config_pontuacao.reducao_pontos_por_posicao }} pontos</li>
-                            <li>A pontuação mínima é de 10 pontos</li>
+                            <li>O primeiro a pagar recebe {{ config_pontuacao.pontuacao_primeiro_colocado }} pontos;</li>
+                            <li>Cada posição seguinte recebe menos {{ config_pontuacao.reducao_pontos_por_posicao }} pontos;</li>
+                            <li>A pontuação mínima é de {{ config_pontuacao.pontuacao_minima }} pontos.</li>
                         </ul>
                         <p>A premiação para o primeiro colocado é concedida mensalmente.</p>
                     </div>
@@ -441,7 +499,6 @@ $(document).ready(function() {
                                     <th>Integrante</th>
                                     <th>Categoria</th>
                                     <th>Pontuação</th>
-                                    <th>Ações</th>
                                 </tr>
                             </thead>
                             <tbody>`;
@@ -459,11 +516,6 @@ $(document).ready(function() {
                             <td>${item.integrante.nome}</td>
                             <td>${item.integrante.categoria}</td>
                             <td>${item.pontos}</td>
-                            <td>
-                                <a href="/integrante/${item.integrante.id}" class="btn btn-sm btn-primary btn-action" title="Ver Detalhes">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-                            </td>
                         </tr>`;
                     });
                     
@@ -516,7 +568,6 @@ $(document).ready(function() {
                                     <th>Integrante</th>
                                     <th>Categoria</th>
                                     <th>Pontuação</th>
-                                    <th>Ações</th>
                                 </tr>
                             </thead>
                             <tbody>`;
@@ -530,11 +581,6 @@ $(document).ready(function() {
                             <td>${item.integrante.nome}</td>
                             <td>${item.integrante.categoria}</td>
                             <td>${item.pontos}</td>
-                            <td>
-                                <a href="/integrante/${item.integrante.id}" class="btn btn-sm btn-primary btn-action" title="Ver Detalhes">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-                            </td>
                         </tr>`;
                     });
                     
@@ -608,6 +654,160 @@ $(document).ready(function() {
             }
         });
     });
+    
+    // Controladores para alternar entre os tipos de filtro do gráfico
+    $('#btn-grafico-mensal').click(function() {
+        $('#filtro-grafico-mensal').show();
+        $('#filtro-grafico-semestral').hide();
+        $('#btn-grafico-mensal').addClass('active');
+        $('#btn-grafico-semestral').removeClass('active');
+        
+        // Carregar o gráfico com os filtros atuais
+        const mes = $('#filtro-grafico-mes').val();
+        const ano = $('#filtro-grafico-ano-mensal').val();
+        carregarGrafico('mes', mes, ano);
+    });
+    
+    $('#btn-grafico-semestral').click(function() {
+        $('#filtro-grafico-mensal').hide();
+        $('#filtro-grafico-semestral').show();
+        $('#btn-grafico-mensal').removeClass('active');
+        $('#btn-grafico-semestral').addClass('active');
+        
+        // Carregar o gráfico com os filtros atuais
+        const semestre = $('#filtro-grafico-semestre').val();
+        const ano = $('#filtro-grafico-ano-semestral').val();
+        carregarGrafico('semestre', semestre, ano);
+    });
+    
+    // Eventos para os botões de filtro do gráfico
+    $('#btn-filtrar-grafico-mensal').click(function() {
+        const mes = $('#filtro-grafico-mes').val();
+        const ano = $('#filtro-grafico-ano-mensal').val();
+        carregarGrafico('mes', mes, ano);
+    });
+    
+    $('#btn-filtrar-grafico-semestral').click(function() {
+        const semestre = $('#filtro-grafico-semestre').val();
+        const ano = $('#filtro-grafico-ano-semestral').val();
+        carregarGrafico('semestre', semestre, ano);
+    });
+    
+    // Função genérica para carregar o gráfico baseado no tipo e valor
+    function carregarGrafico(tipo, valor, ano) {
+        // Atualizar informação de filtro mostrada
+        let textoFiltro = "";
+        if (tipo === 'mes') {
+            textoFiltro = `Mês ${valor}/${ano}`;
+        } else if (tipo === 'semestre') {
+            const nomeSemestre = valor === 'PRIMEIRO' ? 'Primeiro' : 'Segundo';
+            textoFiltro = `${nomeSemestre} Semestre/${ano}`;
+        }
+        $('#filtro-atual').text(textoFiltro);
+        
+        // Mostrar indicador de carregamento
+        $('#grafico-wrapper').html('<div class="text-center p-5"><i class="fas fa-spinner fa-spin fa-2x"></i><p class="mt-2">Carregando gráfico...</p></div>');
+        
+        // Preparar dados para envio
+        const requestData = { ano: parseInt(ano) };
+        requestData[tipo] = valor;
+        
+        // Fazer requisição AJAX para obter o novo gráfico
+        $.ajax({
+            url: '/api/grafico_pontuacao',
+            type: 'GET',
+            data: requestData,
+            dataType: 'json',
+            success: function(response) {
+                // Atualizar a imagem do gráfico com timestamp para evitar cache
+                const timestamp = new Date().getTime();
+                const imgUrl = `{{ url_for('static', filename='graphs/') }}${response.grafico}?t=${timestamp}`;
+                
+                $('#grafico-wrapper').html('<img id="grafico-pontuacao" src="' + imgUrl + '" alt="Gráfico de Pontuação dos Integrantes" class="img-fluid">');
+            },
+            error: function() {
+                $('#grafico-wrapper').html('<div class="alert alert-danger"><i class="fas fa-exclamation-circle me-2"></i>Erro ao carregar o gráfico. Tente novamente.</div>');
+            }
+        });
+    }
+    
+    // ----- Controles para o gráfico Financeiro (Entradas, Gastos e Saldo) -----
+    
+    // Controladores para alternar entre os tipos de filtro do gráfico financeiro
+    $('#btn-financeiro-mensal').click(function() {
+        $('#filtro-financeiro-mensal').show();
+        $('#filtro-financeiro-semestral').hide();
+        $('#btn-financeiro-mensal').addClass('active');
+        $('#btn-financeiro-semestral').removeClass('active');
+        
+        // Carregar o gráfico com os filtros atuais
+        const mes = $('#filtro-financeiro-mes').val();
+        const ano = $('#filtro-financeiro-ano-mensal').val();
+        carregarGraficoFinanceiro('mes', mes, ano);
+    });
+    
+    $('#btn-financeiro-semestral').click(function() {
+        $('#filtro-financeiro-mensal').hide();
+        $('#filtro-financeiro-semestral').show();
+        $('#btn-financeiro-mensal').removeClass('active');
+        $('#btn-financeiro-semestral').addClass('active');
+        
+        // Carregar o gráfico com os filtros atuais
+        const semestre = $('#filtro-financeiro-semestre').val();
+        const ano = $('#filtro-financeiro-ano-semestral').val();
+        carregarGraficoFinanceiro('semestre', semestre, ano);
+    });
+    
+    // Eventos para os botões de filtro do gráfico financeiro
+    $('#btn-filtrar-financeiro-mensal').click(function() {
+        const mes = $('#filtro-financeiro-mes').val();
+        const ano = $('#filtro-financeiro-ano-mensal').val();
+        carregarGraficoFinanceiro('mes', mes, ano);
+    });
+    
+    $('#btn-filtrar-financeiro-semestral').click(function() {
+        const semestre = $('#filtro-financeiro-semestre').val();
+        const ano = $('#filtro-financeiro-ano-semestral').val();
+        carregarGraficoFinanceiro('semestre', semestre, ano);
+    });
+    
+    // Função para carregar o gráfico financeiro
+    function carregarGraficoFinanceiro(tipo, valor, ano) {
+        // Atualizar informação de filtro mostrada
+        let textoFiltro = "";
+        if (tipo === 'mes') {
+            textoFiltro = `Mês ${valor}/${ano}`;
+        } else if (tipo === 'semestre') {
+            const nomeSemestre = valor === 'PRIMEIRO' ? 'Primeiro' : 'Segundo';
+            textoFiltro = `${nomeSemestre} Semestre/${ano}`;
+        }
+        $('#filtro-financeiro-atual').text(textoFiltro);
+        
+        // Mostrar indicador de carregamento
+        $('#grafico-financeiro-wrapper').html('<div class="text-center p-5"><i class="fas fa-spinner fa-spin fa-2x"></i><p class="mt-2">Carregando gráfico...</p></div>');
+        
+        // Preparar dados para envio
+        const requestData = { ano: parseInt(ano) };
+        requestData[tipo] = valor;
+        
+        // Fazer requisição AJAX para obter o novo gráfico
+        $.ajax({
+            url: '/api/grafico_financeiro',
+            type: 'GET',
+            data: requestData,
+            dataType: 'json',
+            success: function(response) {
+                // Atualizar a imagem do gráfico com timestamp para evitar cache
+                const timestamp = new Date().getTime();
+                const imgUrl = `{{ url_for('static', filename='graphs/') }}${response.grafico}?t=${timestamp}`;
+                
+                $('#grafico-financeiro-wrapper').html('<img id="grafico-financeiro" src="' + imgUrl + '" alt="Gráfico de Entradas, Gastos e Saldo" class="img-fluid">');
+            },
+            error: function() {
+                $('#grafico-financeiro-wrapper').html('<div class="alert alert-danger"><i class="fas fa-exclamation-circle me-2"></i>Erro ao carregar o gráfico. Tente novamente.</div>');
+            }
+        });
+    }
 });
 </script>
 {% endblock %}

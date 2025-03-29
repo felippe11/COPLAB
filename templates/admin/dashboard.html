@@ -270,6 +270,13 @@
                                             <input type="number" class="form-control" id="reducao_pontos" name="reducao_pontos" min="1" max="{{ config_pontuacao.pontuacao_primeiro_colocado }}" value="{{ config_pontuacao.reducao_pontos_por_posicao }}" required>
                                         </div>
                                     </div>
+                                    <div class="row g-3 mb-3">
+                                        <div class="col-12">
+                                            <label for="pontuacao_minima" class="form-label">Pontuação mínima</label>
+                                            <input type="number" class="form-control" id="pontuacao_minima" name="pontuacao_minima" min="1" max="{{ config_pontuacao.pontuacao_primeiro_colocado }}" value="{{ config_pontuacao.pontuacao_minima }}" required>
+                                            <div class="form-text">Pontuação mínima que qualquer integrante pode receber, independente da posição.</div>
+                                        </div>
+                                    </div>
                                     <div class="form-check mb-3">
                                         <input class="form-check-input" type="checkbox" id="recalcular" name="recalcular" value="true">
                                         <label class="form-check-label" for="recalcular">
