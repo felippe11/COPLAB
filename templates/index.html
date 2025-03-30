@@ -6,7 +6,7 @@
 <div class="row mb-4">
     <div class="col-12 d-flex align-items-center">
         <img src="{{ url_for('static', filename='coplab.png') }}" alt="Logo" style="max-height: 80px; margin-right: 20px;">
-        <h1 class="display-5 mb-0">Dashboard da Copa do Laboratório</h1>
+        <h1 class="display-5 mb-0">Dashboard</h1>
     </div>
 </div>
 
@@ -20,8 +20,8 @@
                         <h6 class="text-muted mb-1">Saldo em Caixa</h6>
                         <h2 class="mb-0">R$ {{ "%.2f"|format(saldo_total) }}</h2>
                         <small class="text-muted">
-                            Arrecadado: R$ {{ "%.2f"|format(total_arrecadado) }} | 
-                            Gastos: R$ {{ "%.2f"|format(total_gastos) }}
+                            Arrecadado: <span class="text-success">R$ {{ "%.2f"|format(total_arrecadado) }}</span> | 
+                            Gastos: <span class="text-danger">R$ {{ "%.2f"|format(total_gastos) }}</span>
                         </small>
                     </div>
                     <div class="dashboard-icon text-success">
