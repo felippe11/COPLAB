@@ -4,13 +4,17 @@ from flask import Flask
 # Import extensions to initialize them
 from extensions import db, migrate, csrf 
 
+from dotenv import load_dotenv
+load_dotenv()
+
 def create_app():
     # Create the Flask app
     app = Flask(__name__)
     
     # App configuration
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or 'chave-secreta-temporaria'
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL') or 'postgresql://coplab:123456@localhost/coplab_database'
+    #app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL') or 'postgresql://coplab:123456@localhost/coplab_database'
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
     app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max-limit
