@@ -2,28 +2,206 @@
 
 {% block title %}Enviar Comprovante - Sistema de Gestão de Pagamentos da Copa{% endblock %}
 
+{% block head %}
+{{ super() }}
+<style>
+    :root {
+        --primary-color: #3498db;
+        --success-color: #2ecc71;
+        --info-color: #17a2b8;
+        --warning-color: #f39c12;
+        --danger-color: #e74c3c;
+        --dark-color: #343a40;
+        --light-color: #f8f9fa;
+        --border-radius: 0.5rem;
+        --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Card styling */
+    .card {
+        border-radius: var(--border-radius);
+        box-shadow: var(--box-shadow);
+        border: none;
+        margin-bottom: 1.5rem;
+        transition: transform 0.2s, box-shadow 0.2s;
+        animation: fadeIn 0.3s ease-out;
+    }
+
+    .card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+    }
+
+    .card-header {
+        border-top-left-radius: var(--border-radius);
+        border-top-right-radius: var(--border-radius);
+        font-weight: 500;
+        padding: 0.75rem 1.25rem;
+    }
+
+    /* Dashboard icon */
+    .dashboard-icon-header {
+        font-size: 1.5rem;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background-color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Fade in animation for cards */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Breadcrumb styling */
+    .breadcrumb {
+        background-color: transparent;
+        padding: 0.5rem 0;
+    }
+
+    .breadcrumb-item a {
+        color: var(--primary-color);
+        text-decoration: none;
+    }
+
+    .breadcrumb-item a:hover {
+        text-decoration: underline;
+    }
+
+    /* Page header */
+    .page-header {
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid rgba(0,0,0,0.1);
+    }
+
+    /* Alert styling */
+    .alert-info {
+        background-color: rgba(52, 152, 219, 0.1);
+        border-left: 4px solid var(--info-color);
+        border-top: none;
+        border-right: none;
+        border-bottom: none;
+        border-radius: var(--border-radius);
+    }
+
+    /* Better color gradients */
+    .bg-gradient-primary {
+        background: linear-gradient(45deg, #3498db, #2980b9) !important;
+    }
+
+    .bg-gradient-info {
+        background: linear-gradient(45deg, #17a2b8, #138496) !important;
+    }
+
+    /* Form styling */
+    .form-control, .form-select {
+        border-radius: var(--border-radius);
+        padding: 0.75rem 1rem;
+        border: 1px solid #dee2e6;
+        transition: all 0.2s;
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.25rem rgba(52, 152, 219, 0.25);
+    }
+
+    .form-label {
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+    }
+
+    .form-text {
+        color: #6c757d;
+        margin-top: 0.5rem;
+    }
+
+    /* File input styling */
+    .file-upload-wrapper {
+        position: relative;
+        margin-bottom: 1rem;
+        border: 2px dashed #dee2e6;
+        border-radius: var(--border-radius);
+        padding: 2rem;
+        text-align: center;
+        transition: all 0.2s;
+        background-color: #f8f9fa;
+    }
+
+    .file-upload-wrapper:hover {
+        border-color: var(--primary-color);
+        background-color: rgba(52, 152, 219, 0.05);
+    }
+
+    /* Button styling */
+    .btn-custom-primary {
+        background: linear-gradient(45deg, #3498db, #2980b9);
+        border: none;
+        color: white;
+        padding: 0.6rem 1.5rem;
+        border-radius: 0.3rem;
+        transition: all 0.2s;
+    }
+
+    .btn-custom-primary:hover {
+        background: linear-gradient(45deg, #2980b9, #1f6aa1);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-custom-secondary {
+        background: linear-gradient(45deg, #6c757d, #495057);
+        border: none;
+        color: white;
+        padding: 0.6rem 1.5rem;
+        border-radius: 0.3rem;
+        transition: all 0.2s;
+    }
+
+    .btn-custom-secondary:hover {
+        background: linear-gradient(45deg, #5a6268, #343a40);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="row mb-4">
-    <div class="col-12">
-        <h1 class="display-5 mb-4">Enviar Comprovante de Pagamento</h1>
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Início</a></li>
-                <li class="breadcrumb-item"><a href="{{ url_for('detalhes_integrante', integrante_id=integrante.id) }}">{{ integrante.nome }}</a></li>
-                <li class="breadcrumb-item active">Enviar Comprovante</li>
-            </ol>
-        </nav>
+<div class="page-header">
+    <div class="row align-items-center">
+        <div class="col-auto">
+            <a href="{{ url_for('detalhes_integrante', integrante_id=integrante.id) }}" class="btn btn-light rounded-circle btn-sm mb-2">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+        </div>
+        <div class="col">
+            <h1 class="display-5 mb-0">Enviar Comprovante de Pagamento</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-4">
+                    <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Início</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('detalhes_integrante', integrante_id=integrante.id) }}">{{ integrante.nome }}</a></li>
+                    <li class="breadcrumb-item active">Enviar Comprovante</li>
+                </ol>
+            </nav>
+        </div>
     </div>
 </div>
 
 <div class="row justify-content-center">
     <div class="col-md-8">
         <div class="card">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0">
-                    <i class="fas fa-upload me-2"></i>
-                    Envio de Comprovante
-                </h5>
+            <div class="card-header bg-gradient-primary text-white">
+                <div class="d-flex align-items-center">
+                    <div class="dashboard-icon-header me-2">
+                        <i class="fas fa-upload"></i>
+                    </div>
+                    <h5 class="mb-0">Envio de Comprovante</h5>
+                </div>
             </div>
             <div class="card-body">
                 <div class="alert alert-info mb-4">
@@ -33,9 +211,17 @@
                         </div>
                         <div>
                             <h5 class="alert-heading">Informações do Pagamento</h5>
-                            <p class="mb-0">Integrante: <strong>{{ integrante.nome }}</strong></p>
-                            <p class="mb-0">Categoria: <strong>{{ integrante.categoria.value }}</strong></p>
-                            <p class="mb-0">Valor: <strong>R$ {{ "%.2f"|format(integrante.valor_mensal) }}</strong></p>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p class="mb-1"><span class="text-muted">Integrante:</span> <strong>{{ integrante.nome }}</strong></p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p class="mb-1"><span class="text-muted">Categoria:</span> <strong>{{ integrante.categoria.value }}</strong></p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p class="mb-1"><span class="text-muted">Valor:</span> <strong class="text-success">R$ {{ "%.2f"|format(integrante.valor_mensal) }}</strong></p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -43,7 +229,7 @@
                 <form method="POST" enctype="multipart/form-data" action="{{ url_for('enviar_comprovante', integrante_id=integrante.id) }}">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     
-                    <div class="row mb-3">
+                    <div class="row mb-4">
                         <div class="col-md-6">
                             <label for="mes" class="form-label">Mês de Referência</label>
                             <select class="form-select" id="mes" name="mes" required>
@@ -66,8 +252,12 @@
                     
                     <div class="mb-4">
                         <label for="comprovante" class="form-label">Comprovante de Pagamento</label>
-                        <input class="form-control" type="file" id="comprovante" name="comprovante" accept=".jpg,.jpeg,.png,.pdf" required>
-                        <div class="form-text">Formatos aceitos: JPG, PNG, PDF. Tamanho máximo: 16MB.</div>
+                        <div class="file-upload-wrapper">
+                            <input class="form-control" type="file" id="comprovante" name="comprovante" accept=".jpg,.jpeg,.png,.pdf" required>
+                            <div class="form-text mt-2">
+                                <i class="fas fa-info-circle me-1"></i> Formatos aceitos: JPG, PNG, PDF. Tamanho máximo: 16MB.
+                            </div>
+                        </div>
                     </div>
                     
                     <div class="d-grid gap-2 d-md-flex justify-content-md-end">

@@ -2,17 +2,226 @@
 
 {% block title %}Detalhes do Integrante - Sistema de Gestão de Pagamentos da Copa{% endblock %}
 
+{% block head %}
+{{ super() }}
+<style>
+    :root {
+        --primary-color: #3498db;
+        --success-color: #2ecc71;
+        --info-color: #17a2b8;
+        --warning-color: #f39c12;
+        --danger-color: #e74c3c;
+        --dark-color: #343a40;
+        --light-color: #f8f9fa;
+        --border-radius: 0.5rem;
+        --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Card styling */
+    .card {
+        border-radius: var(--border-radius);
+        box-shadow: var(--box-shadow);
+        border: none;
+        margin-bottom: 1.5rem;
+        transition: transform 0.2s, box-shadow 0.2s;
+        animation: fadeIn 0.3s ease-out;
+    }
+
+    .card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+    }
+
+    .card-header {
+        border-top-left-radius: var(--border-radius);
+        border-top-right-radius: var(--border-radius);
+        font-weight: 500;
+        padding: 0.75rem 1.25rem;
+    }
+
+    /* Dashboard icon */
+    .dashboard-icon-header {
+        font-size: 1.5rem;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background-color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Fade in animation for cards */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Table styling */
+    .table {
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .table thead th {
+        background-color: var(--light-color);
+        border-top: none;
+        border-bottom: 2px solid var(--primary-color);
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.85rem;
+    }
+
+    .table tbody tr:hover {
+        background-color: rgba(52, 152, 219, 0.05);
+    }
+
+    .table th, .table td {
+        padding: 12px 15px;
+        vertical-align: middle;
+    }
+
+    /* Breadcrumb styling */
+    .breadcrumb {
+        background-color: transparent;
+        padding: 0.5rem 0;
+    }
+
+    .breadcrumb-item a {
+        color: var(--primary-color);
+        text-decoration: none;
+    }
+
+    .breadcrumb-item a:hover {
+        text-decoration: underline;
+    }
+
+    /* Page header */
+    .page-header {
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid rgba(0,0,0,0.1);
+    }
+
+    /* Better color gradients */
+    .bg-gradient-primary {
+        background: linear-gradient(45deg, #3498db, #2980b9) !important;
+    }
+
+    .bg-gradient-success {
+        background: linear-gradient(45deg, #2ecc71, #27ae60) !important;
+    }
+
+    .bg-gradient-warning {
+        background: linear-gradient(45deg, #f39c12, #e67e22) !important;
+    }
+
+    .bg-gradient-danger {
+        background: linear-gradient(45deg, #e74c3c, #c0392b) !important;
+    }
+
+    /* Avatar styling */
+    .avatar-placeholder {
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        background: linear-gradient(45deg, #f5f7fa, #c3cfe2);
+        transition: transform 0.3s;
+    }
+
+    .avatar-placeholder:hover {
+        transform: scale(1.05);
+    }
+
+    /* List group styling */
+    .list-group-item {
+        border-left: none;
+        border-right: none;
+        padding: 1rem 1.25rem;
+    }
+
+    .list-group-item:first-child {
+        border-top: none;
+    }
+
+    /* Badge styling */
+    .badge {
+        padding: 0.5rem 0.85rem;
+        font-weight: 500;
+        border-radius: 30px;
+    }
+
+    /* Button styling */
+    .btn-custom-primary {
+        background: linear-gradient(45deg, #3498db, #2980b9);
+        border: none;
+        color: white;
+        padding: 0.5rem 1.5rem;
+        border-radius: 0.3rem;
+        transition: all 0.2s;
+    }
+
+    .btn-custom-primary:hover {
+        background: linear-gradient(45deg, #2980b9, #1f6aa1);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-custom-secondary {
+        background: linear-gradient(45deg, #6c757d, #495057);
+        border: none;
+        color: white;
+        padding: 0.5rem 1.5rem;
+        border-radius: 0.3rem;
+        transition: all 0.2s;
+    }
+
+    .btn-custom-secondary:hover {
+        background: linear-gradient(45deg, #5a6268, #343a40);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-action {
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        margin-right: 0.25rem;
+    }
+
+    /* Modal styling */
+    .modal-content {
+        border-radius: var(--border-radius);
+        border: none;
+    }
+
+    .modal-header {
+        border-top-left-radius: var(--border-radius);
+        border-top-right-radius: var(--border-radius);
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="row mb-4">
-    <div class="col-12">
-        <h1 class="display-5 mb-4">{{ integrante.nome }}</h1>
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Início</a></li>
-                <li class="breadcrumb-item"><a href="{{ url_for('buscar_integrante') }}">Buscar Integrante</a></li>
-                <li class="breadcrumb-item active">{{ integrante.nome }}</li>
-            </ol>
-        </nav>
+<div class="page-header">
+    <div class="row align-items-center">
+        <div class="col-auto">
+            <a href="{{ url_for('buscar_integrante') }}" class="btn btn-light rounded-circle btn-sm mb-2">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+        </div>
+        <div class="col">
+            <h1 class="display-5 mb-0">{{ integrante.nome }}</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-4">
+                    <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Início</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('buscar_integrante') }}">Buscar Integrante</a></li>
+                    <li class="breadcrumb-item active">{{ integrante.nome }}</li>
+                </ol>
+            </nav>
+        </div>
     </div>
 </div>
 
@@ -20,24 +229,24 @@
     <!-- Informações do Integrante -->
     <div class="col-md-4">
         <div class="card mb-4">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0">
-                    <i class="fas fa-user me-2"></i>
-                    Informações do Integrante
-                </h5>
+            <div class="card-header bg-gradient-primary text-white">
+                <div class="d-flex align-items-center">
+                    <div class="dashboard-icon-header me-2">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <h5 class="mb-0">Informações do Integrante</h5>
+                </div>
             </div>
             <div class="card-body">
                 <div class="mb-3 text-center">
-                    <div class="avatar-placeholder bg-light rounded-circle mx-auto mb-3" style="width: 120px; height: 120px; display: flex; align-items: center; justify-content: center;">
+                    <div class="avatar-placeholder rounded-circle mx-auto mb-3" style="width: 120px; height: 120px; display: flex; align-items: center; justify-content: center;">
                         <i class="fas fa-user fa-4x text-primary"></i>
                     </div>
+                    <h4 class="text-primary mb-0">{{ integrante.nome }}</h4>
+                    <p class="text-muted">ID #{{ integrante.id }}</p>
                 </div>
                 
                 <ul class="list-group mb-4">
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <strong>Nome:</strong>
-                        <span>{{ integrante.nome }}</span>
-                    </li>
                     <li class="list-group-item d-flex justify-content-between align-items-center">
                         <strong>Categoria:</strong>
                         <span class="badge bg-primary">{{ integrante.categoria.value }}</span>
@@ -66,11 +275,13 @@
     <!-- Pagamentos Pendentes -->
     <div class="col-md-8">
         <div class="card mb-4">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0">
-                    <i class="fas fa-clock me-2"></i>
-                    Pagamentos Pendentes
-                </h5>
+            <div class="card-header bg-gradient-primary text-white">
+                <div class="d-flex align-items-center">
+                    <div class="dashboard-icon-header me-2">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <h5 class="mb-0">Pagamentos Pendentes</h5>
+                </div>
             </div>
             <div class="card-body">
                 {% if pagamentos_pendentes|length > 0 %}
@@ -84,10 +295,14 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% for pagamento in pagamentos_pendentes %}
+                            {% for pagamento in pagamentos_pendentes|sort(attribute='ano,mes', reverse=true) %}
                             <tr>
-                                <td>{{ pagamento.nome_mes }}/{{ pagamento.ano }}</td>
-                                <td>R$ {{ "%.2f"|format(integrante.valor_mensal) }}</td>
+                                <td>
+                                    <span class="fw-bold">{{ pagamento.nome_mes }}/{{ pagamento.ano }}</span>
+                                </td>
+                                <td>
+                                    <span class="text-success fw-bold">R$ {{ "%.2f"|format(integrante.valor_mensal) }}</span>
+                                </td>
                                 <td>
                                     <a href="{{ url_for('enviar_comprovante', integrante_id=integrante.id) }}?mes={{ pagamento.mes }}&ano={{ pagamento.ano }}" class="btn btn-sm btn-primary">
                                         <i class="fas fa-upload me-1"></i> Enviar Comprovante
@@ -109,11 +324,13 @@
         
         <!-- Histórico de Pagamentos -->
         <div class="card mb-4">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0">
-                    <i class="fas fa-history me-2"></i>
-                    Histórico de Pagamentos
-                </h5>
+            <div class="card-header bg-gradient-primary text-white">
+                <div class="d-flex align-items-center">
+                    <div class="dashboard-icon-header me-2">
+                        <i class="fas fa-history"></i>
+                    </div>
+                    <h5 class="mb-0">Histórico de Pagamentos</h5>
+                </div>
             </div>
             <div class="card-body">
                 {% if integrante.pagamentos|length > 0 %}
@@ -131,8 +348,12 @@
                         <tbody>
                             {% for pagamento in integrante.pagamentos|sort(attribute='ano_referencia,mes_referencia', reverse=true) %}
                             <tr>
-                                <td>{{ pagamento.mes_referencia }}/{{ pagamento.ano_referencia }}</td>
-                                <td>R$ {{ "%.2f"|format(pagamento.valor) }}</td>
+                                <td>
+                                    <span class="fw-bold">{{ pagamento.mes_referencia }}/{{ pagamento.ano_referencia }}</span>
+                                </td>
+                                <td>
+                                    <span class="text-success fw-bold">R$ {{ "%.2f"|format(pagamento.valor) }}</span>
+                                </td>
                                 <td>
                                     {% if pagamento.status.value == 'Validado' %}
                                     <span class="badge bg-success">{{ pagamento.status.value }}</span>
@@ -176,7 +397,7 @@
     </div>
 </div>
 
-<div class="row">
+<div class="row mb-4">
     <div class="col-12 text-center">
         <a href="{{ url_for('buscar_integrante') }}" class="btn btn-secondary me-2">
             <i class="fas fa-arrow-left me-1"></i> Voltar para Busca
@@ -191,7 +412,7 @@
 <div class="modal fade" id="motivoRejeicaoModal" tabindex="-1" aria-labelledby="motivoRejeicaoModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header bg-warning text-dark">
+            <div class="modal-header bg-gradient-warning text-dark">
                 <h5 class="modal-title" id="motivoRejeicaoModalLabel">
                     <i class="fas fa-exclamation-triangle me-2"></i>
                     Motivo da Rejeição

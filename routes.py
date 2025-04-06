@@ -13,8 +13,8 @@ import calendar
 import json
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 import matplotlib.pyplot as plt
 import matplotlib
@@ -621,7 +621,7 @@ def register_routes(app):
             ano_referencia=ano_atual
         ).first()
         
-        if not pagamento_mes_atual or pagamento_mes_atual.status == StatusPagamentoEnum.PENDENTE:
+        if not pagamento_mes_atual or pagamento_mes_atual.status == StatusPagamentoEnum.PENDENTE or pagamento_mes_atual.status == StatusPagamentoEnum.REJEITADO:
             pagamentos_pendentes.append({
                 'mes': mes_atual,
                 'ano': ano_atual,
@@ -643,7 +643,7 @@ def register_routes(app):
                 ano_referencia=ano_anterior
             ).first()
             
-            if not pagamento_anterior or pagamento_anterior.status == StatusPagamentoEnum.PENDENTE:
+            if not pagamento_anterior or pagamento_anterior.status == StatusPagamentoEnum.PENDENTE or pagamento_anterior.status == StatusPagamentoEnum.REJEITADO:
                 pagamentos_pendentes.append({
                     'mes': mes_anterior,
                     'ano': ano_anterior,
@@ -1229,12 +1229,24 @@ def register_routes(app):
                 buffer = io.BytesIO()
                 
                 # Configurar documento PDF
-                doc = SimpleDocTemplate(buffer, pagesize=letter)
+                doc = SimpleDocTemplate(buffer, pagesize=letter, 
+                                    rightMargin=36, leftMargin=36,
+                                    topMargin=36, bottomMargin=36)
                 styles = getSampleStyleSheet()
                 elements = []
                 
+                # Estilo personalizado para título
+                title_style = ParagraphStyle(
+                    'CustomTitle',
+                    parent=styles['Heading1'],
+                    fontSize=16,
+                    alignment=1,  # Centralizado
+                    spaceAfter=20,
+                    textColor=colors.darkblue
+                )
+                
                 # Título do relatório
-                titulo = 'Relatório de Entradas e Saídas'
+                titulo = 'COPLAB - Relatório de Entradas e Saídas'
                 if mes_filtro and ano_filtro:
                     mes_nome = calendar.month_name[int(mes_filtro)]
                     titulo = f'Relatório de Entradas e Saídas - {mes_nome}/{ano_filtro}'
@@ -1244,51 +1256,128 @@ def register_routes(app):
                 elif ano_filtro:
                     titulo = f'Relatório de Entradas e Saídas - {ano_filtro}'
                 
-                elements.append(Paragraph(titulo, styles['Heading1']))
-                elements.append(Spacer(1, 0.25*inch))
+                elements.append(Paragraph(titulo, title_style))
+                
+                # Adicionar data de geração do relatório
+                data_geracao = datetime.now().strftime('%d/%m/%Y %H:%M')
+                elements.append(Paragraph(f'Gerado em: {data_geracao}', 
+                                        ParagraphStyle('DataGeracao', 
+                                                    parent=styles['Normal'],
+                                                    alignment=1,
+                                                    fontSize=9,
+                                                    textColor=colors.gray)))
+                
+                elements.append(Spacer(1, 0.5*inch))
+                
+                # Resumo financeiro
+                elements.append(Paragraph('Resumo Financeiro', 
+                                        ParagraphStyle('Subtitle', 
+                                                    parent=styles['Heading2'],
+                                                    textColor=colors.darkblue,
+                                                    fontSize=12,
+                                                    spaceAfter=10)))
+                
+                # Calcular totais
+                total_entradas = sum(t['valor'] for t in transacoes if t['tipo'] == 'entrada')
+                total_saidas = sum(t['valor'] for t in transacoes if t['tipo'] == 'saida')
+                saldo = total_entradas - total_saidas
+                
+                # Tabela de resumo
+                resumo_data = [
+                    ['Total de Entradas', f'R$ {total_entradas:.2f}'],
+                    ['Total de Saídas', f'R$ {total_saidas:.2f}'],
+                    ['Saldo', f'R$ {saldo:.2f}']
+                ]
+                
+                resumo_table = Table(resumo_data, colWidths=[3*inch, 1.5*inch])
+                resumo_style = TableStyle([
+                    ('BACKGROUND', (0, 0), (0, -1), colors.lightgrey),
+                    ('BACKGROUND', (0, 2), (1, 2), colors.palegreen if saldo >= 0 else colors.mistyrose),
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                    ('PADDING', (0, 0), (-1, -1), 6),
+                    ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+                    ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+                ])
+                resumo_table.setStyle(resumo_style)
+                elements.append(resumo_table)
+                
+                elements.append(Spacer(1, 0.3*inch))
+                
+                # Título da tabela principal
+                elements.append(Paragraph('Detalhamento de Transações', 
+                                        ParagraphStyle('TableTitle', 
+                                                    parent=styles['Heading3'],
+                                                    textColor=colors.darkblue,
+                                                    fontSize=11)))
+                
+                elements.append(Spacer(1, 0.2*inch))
                 
                 # Dados da tabela
-                data = [['ID', 'Tipo', 'Descrição', 'Responsável', 'Categoria', 'Mês/Ano', 'Valor', 'Status', 'Data']]
+                data = [['ID', 'Tipo', 'Descrição', 'Responsável', 'Valor', 'Status', 'Data']]
                 
                 for t in transacoes:
                     data.append([
                         str(t['id']),
                         'Entrada' if t['tipo'] == 'entrada' else 'Saída',
-                        t['descricao'],
-                        t['integrante'],
-                        t['categoria'],
-                        t['mes_ano'],
+                        Paragraph(t['descricao'], styles['Normal']),
+                        Paragraph(t['integrante'], styles['Normal']),
                         f'R$ {t["valor"]:.2f}',
                         t['status'],
-                        t['data'].strftime('%d/%m/%Y %H:%M') if t['data'] else '-'
+                        t['data'].strftime('%d/%m/%Y') if t['data'] else '-'
                     ])
                 
-                # Criar tabela
-                table = Table(data)
+                # Criar tabela com larguras de coluna personalizadas
+                table = Table(data, colWidths=[0.5*inch, 0.8*inch, 2.5*inch, 1.5*inch, 0.8*inch, 0.8*inch, 1*inch],
+                            repeatRows=1)
                 
                 # Estilo da tabela
                 style = TableStyle([
-                    ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                    # Cabeçalho
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.darkblue),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
                     ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
                     ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                    ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-                    ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-                    ('GRID', (0, 0), (-1, -1), 1, colors.black)
+                    ('FONTSIZE', (0, 0), (-1, 0), 10),
+                    ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+                    ('TOPPADDING', (0, 0), (-1, 0), 10),
+                    # Bordas e linhas
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.lightgrey),
+                    ('BOX', (0, 0), (-1, -1), 1, colors.black),
+                    ('LINEBELOW', (0, 0), (-1, 0), 1, colors.black),
+                    # Alinhamento
+                    ('ALIGN', (4, 1), (4, -1), 'RIGHT'),  # Alinhar valores à direita
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    # Espaçamento interno
+                    ('LEFTPADDING', (0, 0), (-1, -1), 6),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+                    ('TOPPADDING', (0, 1), (-1, -1), 6),
+                    ('BOTTOMPADDING', (0, 1), (-1, -1), 6),
                 ])
                 
                 # Adicionar cores para diferenciar entradas e saídas
                 for i, row in enumerate(data[1:], 1):
                     if row[1] == 'Entrada':
-                        style.add('BACKGROUND', (0, i), (-1, i), colors.lightgreen)
+                        style.add('BACKGROUND', (0, i), (-1, i), colors.honeydew)
                     else:  # Saída
-                        style.add('BACKGROUND', (0, i), (-1, i), colors.lightcoral)
+                        style.add('BACKGROUND', (0, i), (-1, i), colors.lavenderblush)
+                        
+                    # Zebra stripes alternando tons para melhor legibilidade
+                    if i % 2 == 0:
+                        if row[1] == 'Entrada':
+                            style.add('BACKGROUND', (0, i), (-1, i), colors.beige)
+                        else:
+                            style.add('BACKGROUND', (0, i), (-1, i), colors.mistyrose)
                 
                 table.setStyle(style)
                 elements.append(table)
                 
+                # Adicionar rodapé
+                elements.append(Spacer(1, 0.5*inch))
+                nota_style = ParagraphStyle('Nota', parent=styles['Normal'], fontSize=8, textColor=colors.grey)
+                elements.append(Paragraph('Este relatório foi gerado automaticamente pelo sistema de gestão financeira.', nota_style))
+                
                 # Construir PDF
-                doc.build(elements)
+                doc.build(elements, onFirstPage=lambda canvas, doc: canvas.setTitle(titulo))
                 
                 # Preparar resposta
                 buffer.seek(0)

@@ -2,27 +2,158 @@
 
 {% block title %}Buscar Integrante - Sistema de Gestão de Pagamentos da Copa{% endblock %}
 
+{% block head %}
+{{ super() }}
+<style>
+    :root {
+        --primary-color: #3498db;
+        --success-color: #2ecc71;
+        --info-color: #17a2b8;
+        --warning-color: #f39c12;
+        --danger-color: #e74c3c;
+        --dark-color: #343a40;
+        --light-color: #f8f9fa;
+        --border-radius: 0.5rem;
+        --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Card styling */
+    .card {
+        border-radius: var(--border-radius);
+        box-shadow: var(--box-shadow);
+        border: none;
+        margin-bottom: 1.5rem;
+        transition: transform 0.2s, box-shadow 0.2s;
+        animation: fadeIn 0.3s ease-out;
+    }
+
+    .card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+    }
+
+    .card-header {
+        border-top-left-radius: var(--border-radius);
+        border-top-right-radius: var(--border-radius);
+        font-weight: 500;
+        padding: 0.75rem 1.25rem;
+    }
+
+    /* Dashboard icon */
+    .dashboard-icon-header {
+        font-size: 1.5rem;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background-color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Fade in animation for cards */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Search styling */
+    .form-search .input-group {
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        border-radius: var(--border-radius);
+        overflow: hidden;
+    }
+
+    .form-search .input-group-text {
+        background-color: #f8f9fa;
+        border: none;
+        color: #6c757d;
+    }
+
+    .form-search .form-control {
+        border: none;
+        padding-left: 0;
+    }
+
+    .form-search .form-control:focus {
+        box-shadow: none;
+    }
+
+    /* Breadcrumb styling */
+    .breadcrumb {
+        background-color: transparent;
+        padding: 0.5rem 0;
+    }
+
+    .breadcrumb-item a {
+        color: var(--primary-color);
+        text-decoration: none;
+    }
+
+    .breadcrumb-item a:hover {
+        text-decoration: underline;
+    }
+
+    /* Page header */
+    .page-header {
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid rgba(0,0,0,0.1);
+    }
+
+    /* Better color gradients */
+    .bg-gradient-primary {
+        background: linear-gradient(45deg, #3498db, #2980b9) !important;
+    }
+
+    /* Custom button styling */
+    .btn-custom-secondary {
+        background: linear-gradient(45deg, #6c757d, #495057);
+        border: none;
+        color: white;
+        padding: 0.5rem 1.5rem;
+        border-radius: 0.3rem;
+        transition: all 0.2s;
+    }
+
+    .btn-custom-secondary:hover {
+        background: linear-gradient(45deg, #5a6268, #343a40);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="row mb-4">
-    <div class="col-12">
-        <h1 class="display-5 mb-4">Buscar Integrante</h1>
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Início</a></li>
-                <li class="breadcrumb-item active">Buscar Integrante</li>
-            </ol>
-        </nav>
+<div class="page-header">
+    <div class="row align-items-center">
+        <div class="col-auto">
+            <a href="{{ url_for('index') }}" class="btn btn-light rounded-circle btn-sm mb-2">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+        </div>
+        <div class="col">
+            <h1 class="display-5 mb-0">Buscar Integrante</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-4">
+                    <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Início</a></li>
+                    <li class="breadcrumb-item active">Buscar Integrante</li>
+                </ol>
+            </nav>
+        </div>
     </div>
 </div>
 
 <div class="row justify-content-center">
     <div class="col-md-8">
         <div class="card">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0">
-                    <i class="fas fa-search me-2"></i>
-                    Busque pelo nome do integrante
-                </h5>
+            <div class="card-header bg-gradient-primary text-white">
+                <div class="d-flex align-items-center">
+                    <div class="dashboard-icon-header me-2">
+                        <i class="fas fa-search"></i>
+                    </div>
+                    <h5 class="mb-0">Busque pelo nome do integrante</h5>
+                </div>
             </div>
             <div class="card-body">
                 <div class="form-search mb-4">
@@ -32,7 +163,9 @@
                                placeholder="Digite o nome do integrante..." 
                                aria-label="Nome do integrante">
                     </div>
-                    <div class="form-text text-muted">A busca é realizada automaticamente enquanto você digita.</div>
+                    <div class="form-text text-muted mt-2">
+                        <i class="fas fa-info-circle me-1"></i> A busca é realizada automaticamente enquanto você digita.
+                    </div>
                 </div>
                 
                 <div id="resultados-busca" class="mt-4">
@@ -43,7 +176,7 @@
     </div>
 </div>
 
-<div class="row mt-4">
+<div class="row mt-2 mb-4">
     <div class="col-12 text-center">
         <a href="{{ url_for('index') }}" class="btn btn-secondary">
             <i class="fas fa-arrow-left me-1"></i> Voltar para o Dashboard
