@@ -2,22 +2,124 @@
 
 {% block title %}Login Administrativo - Sistema de Gestão de Pagamentos da Copa{% endblock %}
 
+{% block head %}
+{{ super() }}
+<style>
+    .login-card {
+        border-radius: var(--border-radius);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        border: none;
+        overflow: hidden;
+        transition: transform 0.3s, box-shadow 0.3s;
+        animation: fadeIn 0.5s ease-out;
+    }
+
+    .login-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+    }
+
+    .login-header {
+        background: linear-gradient(135deg, #2980b9, #3498db);
+        padding: 1.5rem;
+        color: white;
+        text-align: center;
+    }
+
+    .login-icon {
+        font-size: 1.5rem;
+        width: 50px;
+        height: 50px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background-color: rgba(255, 255, 255, 0.2);
+        margin: 0 auto 1rem auto;
+    }
+
+    /* Form styling */
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .input-group {
+        border-radius: var(--border-radius);
+        overflow: hidden;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    }
+
+    .input-group-text {
+        background-color: #f8f9fa;
+        border: none;
+        color: #6c757d;
+    }
+
+    .form-control {
+        border: none;
+        border-left: none;
+        padding: 0.75rem 1rem;
+    }
+
+    .form-control:focus {
+        box-shadow: none;
+        border-color: transparent;
+    }
+
+    .input-group:focus-within {
+        box-shadow: 0 0 0 0.25rem rgba(52, 152, 219, 0.25);
+    }
+
+    /* Button styling */
+    .btn-login {
+        background: linear-gradient(45deg, #3498db, #2980b9);
+        border: none;
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        border-radius: var(--border-radius);
+        transition: all 0.3s;
+    }
+
+    .btn-login:hover {
+        background: linear-gradient(45deg, #2980b9, #1f6aa1);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Fade in animation */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .back-btn {
+        margin-top: 2rem;
+        transition: all 0.2s;
+    }
+
+    .back-btn:hover {
+        transform: translateX(-5px);
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="row justify-content-center">
+<div class="row justify-content-center align-items-center" style="min-height: 80vh;">
     <div class="col-md-6 col-lg-5">
-        <div class="card shadow">
-            <div class="card-header bg-primary text-white text-center py-3">
-                <h4 class="mb-0">
-                    <i class="fas fa-user-shield me-2"></i>
-                    Acesso Administrativo
-                </h4>
+        <div class="login-card">
+            <div class="login-header">
+                <div class="login-icon">
+                    <i class="fas fa-user-shield"></i>
+                </div>
+                <h4 class="mb-0">Acesso Administrativo</h4>
+                <p class="text-white-50 mb-0">Entre com suas credenciais administrativas</p>
             </div>
             <div class="card-body p-4">
                 <form method="POST" action="{{ url_for('admin_login') }}">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     
-                    <div class="mb-3">
-                        <label for="email" class="form-label">Email</label>
+                    <div class="form-group mb-3">
+                        <label for="email" class="form-label fw-bold">Email</label>
                         <div class="input-group">
                             <span class="input-group-text"><i class="fas fa-envelope"></i></span>
                             <input type="email" class="form-control" id="email" name="email" 
@@ -25,8 +127,8 @@
                         </div>
                     </div>
                     
-                    <div class="mb-4">
-                        <label for="senha" class="form-label">Senha</label>
+                    <div class="form-group mb-4">
+                        <label for="senha" class="form-label fw-bold">Senha</label>
                         <div class="input-group">
                             <span class="input-group-text"><i class="fas fa-lock"></i></span>
                             <input type="password" class="form-control" id="senha" name="senha" 
@@ -35,7 +137,7 @@
                     </div>
                     
                     <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-primary btn-lg">
+                        <button type="submit" class="btn btn-login btn-lg">
                             <i class="fas fa-sign-in-alt me-2"></i>Entrar
                         </button>
                     </div>
@@ -43,8 +145,8 @@
             </div>
         </div>
         
-        <div class="text-center mt-4">
-            <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+        <div class="text-center">
+            <a href="{{ url_for('index') }}" class="btn btn-outline-secondary back-btn">
                 <i class="fas fa-arrow-left me-1"></i> Voltar para o Dashboard
             </a>
         </div>

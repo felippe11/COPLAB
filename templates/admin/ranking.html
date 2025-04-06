@@ -2,11 +2,145 @@
 
 {% block title %}Gerenciamento de Ranking - Sistema de Gestão de Pagamentos da Copa{% endblock %}
 
+{% block head %}
+{{ super() }}
+<style>
+    /* Admin header */
+    .admin-header {
+        background: linear-gradient(135deg, #2980b9, #3498db);
+        padding: 1.5rem;
+        border-radius: var(--border-radius);
+        margin-bottom: 1.5rem;
+        box-shadow: var(--box-shadow);
+        color: white;
+    }
+
+    /* Button action styling */
+    .btn-action {
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        margin-right: 0.25rem;
+        transition: all 0.2s;
+    }
+
+    .btn-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Table styling */
+    .table {
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .table thead th {
+        background-color: var(--light-color);
+        border-top: none;
+        border-bottom: 2px solid var(--primary-color);
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.85rem;
+    }
+
+    .table tbody tr:hover {
+        background-color: rgba(52, 152, 219, 0.05);
+    }
+
+    .table th, .table td {
+        padding: 12px 15px;
+        vertical-align: middle;
+    }
+
+    /* Ranking badges */
+    .ranking-badge {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        color: white;
+        font-weight: bold;
+    }
+
+    .ranking-1 {
+        background: linear-gradient(45deg, #FFD700, #FFA500);
+        box-shadow: 0 2px 5px rgba(255, 215, 0, 0.3);
+    }
+
+    .ranking-2 {
+        background: linear-gradient(45deg, #C0C0C0, #A9A9A9);
+        box-shadow: 0 2px 5px rgba(192, 192, 192, 0.3);
+    }
+
+    .ranking-3 {
+        background: linear-gradient(45deg, #CD7F32, #8B4513);
+        box-shadow: 0 2px 5px rgba(205, 127, 50, 0.3);
+    }
+
+    .ranking-badge:not(.ranking-1):not(.ranking-2):not(.ranking-3) {
+        background: linear-gradient(45deg, var(--primary-color), #2574a9);
+        box-shadow: 0 2px 5px rgba(52, 152, 219, 0.3);
+    }
+
+    /* List group styling */
+    .list-group-item {
+        border-left: none;
+        border-right: none;
+        transition: all 0.2s;
+        padding: 1rem 1.25rem;
+    }
+
+    .list-group-item:first-child {
+        border-top: none;
+    }
+
+    /* Modal styling */
+    .modal-content {
+        border-radius: var(--border-radius);
+        overflow: hidden;
+        border: none;
+    }
+
+    /* Dashboard icon */
+    .dashboard-icon-header {
+        font-size: 1.5rem;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background-color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Form styling */
+    .form-select, .form-control {
+        border-radius: var(--border-radius);
+        padding: 0.6rem 1rem;
+    }
+
+    .form-select:focus, .form-control:focus {
+        box-shadow: 0 0 0 0.25rem rgba(52, 152, 219, 0.25);
+        border-color: var(--primary-color);
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="row mb-4">
-    <div class="col-12 d-flex justify-content-between align-items-center">
-        <h1 class="display-5 mb-0">Gerenciamento de Ranking</h1>
-        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-primary">
+<div class="admin-header">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h1 class="display-5 mb-0">Gerenciamento de Ranking</h1>
+            <p class="text-white-50 mb-0">Visualize e gerencie o ranking de pagamentos do sistema</p>
+        </div>
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-light">
             <i class="fas fa-arrow-left me-1"></i>Voltar ao Dashboard
         </a>
     </div>
@@ -16,16 +150,18 @@
     <!-- Filtros -->
     <div class="col-md-12">
         <div class="card mb-4">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0">
-                    <i class="fas fa-filter me-2"></i>
-                    Selecionar Mês/Ano
-                </h5>
+            <div class="card-header bg-gradient-primary text-white">
+                <div class="d-flex align-items-center">
+                    <div class="dashboard-icon-header me-2">
+                        <i class="fas fa-filter"></i>
+                    </div>
+                    <h5 class="mb-0">Selecionar Período</h5>
+                </div>
             </div>
             <div class="card-body">
                 <form method="GET" action="{{ url_for('admin_ranking') }}" class="row g-3">
                     <div class="col-md-4">
-                        <label for="mes" class="form-label">Mês</label>
+                        <label for="mes" class="form-label fw-bold">Mês</label>
                         <select class="form-select" id="mes" name="mes">
                             {% for i in range(1, 13) %}
                             <option value="{{ i }}" {% if mes_selecionado == i %}selected{% endif %}>
@@ -35,7 +171,7 @@
                         </select>
                     </div>
                     <div class="col-md-4">
-                        <label for="ano" class="form-label">Ano</label>
+                        <label for="ano" class="form-label fw-bold">Ano</label>
                         <select class="form-select" id="ano" name="ano">
                             {% for ano in range(2023, 2031) %}
                             <option value="{{ ano }}" {% if ano_selecionado == ano %}selected{% endif %}>{{ ano }}</option>
@@ -57,11 +193,13 @@
     <!-- Ranking do Mês -->
     <div class="col-md-8">
         <div class="card mb-4">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0">
-                    <i class="fas fa-trophy me-2"></i>
-                    Ranking de Pagamentos - {{ mes_selecionado }}/{{ ano_selecionado }}
-                </h5>
+            <div class="card-header bg-gradient-primary text-white">
+                <div class="d-flex align-items-center">
+                    <div class="dashboard-icon-header me-2">
+                        <i class="fas fa-trophy"></i>
+                    </div>
+                    <h5 class="mb-0">Ranking de Pagamentos - {{ mes_selecionado }}/{{ ano_selecionado }}</h5>
+                </div>
             </div>
             <div class="card-body">
                 {% if ranking|length > 0 %}
@@ -83,7 +221,9 @@
                                     <div class="ranking-badge {% if item.posicao <= 3 %}ranking-{{ item.posicao }}{% endif %}">{{ item.posicao }}</div>
                                 </td>
                                 <td>{{ item.integrante.nome }}</td>
-                                <td>{{ item.integrante.categoria.value }}</td>
+                                <td>
+                                    <span class="badge bg-primary">{{ item.integrante.categoria.value }}</span>
+                                </td>
                                 <td>{{ item.data_pagamento.strftime('%d/%m/%Y %H:%M') }}</td>
                                 <td>
                                     <a href="{{ url_for('detalhes_integrante', integrante_id=item.integrante.id) }}" class="btn btn-sm btn-info btn-action" title="Ver Detalhes">
@@ -99,6 +239,10 @@
                                             data-ano="{{ ano_selecionado }}">
                                         <i class="fas fa-award"></i>
                                     </button>
+                                    {% elif item.premiado %}
+                                    <span class="badge bg-success rounded-pill">
+                                        <i class="fas fa-check-circle me-1"></i> Premiado
+                                    </span>
                                     {% endif %}
                                 </td>
                             </tr>
@@ -119,11 +263,13 @@
     <!-- Premiações Registradas -->
     <div class="col-md-4">
         <div class="card mb-4">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0">
-                    <i class="fas fa-award me-2"></i>
-                    Premiações Registradas
-                </h5>
+            <div class="card-header bg-gradient-primary text-white">
+                <div class="d-flex align-items-center">
+                    <div class="dashboard-icon-header me-2">
+                        <i class="fas fa-award"></i>
+                    </div>
+                    <h5 class="mb-0">Premiações Registradas</h5>
+                </div>
             </div>
             <div class="card-body">
                 {% if premiacoes|length > 0 %}
@@ -138,7 +284,9 @@
                                 </div>
                                 <small class="text-muted">{{ premiacao.integrante.categoria.value }}</small>
                             </div>
-                            <small class="text-muted">{{ premiacao.data_premiacao.strftime('%d/%m/%Y') }}</small>
+                            <span class="badge bg-light text-dark">
+                                {{ premiacao.data_premiacao.strftime('%d/%m/%Y') }}
+                            </span>
                         </div>
                     </div>
                     {% endfor %}
@@ -158,21 +306,28 @@
 <div class="modal fade" id="premiacaoModal" tabindex="-1" aria-labelledby="premiacaoModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header bg-success text-white">
-                <h5 class="modal-title" id="premiacaoModalLabel">
-                    <i class="fas fa-award me-2"></i>
-                    Registrar Premiação
-                </h5>
+            <div class="modal-header bg-gradient-success text-white">
+                <div class="d-flex align-items-center">
+                    <div class="dashboard-icon-header me-2">
+                        <i class="fas fa-award"></i>
+                    </div>
+                    <h5 class="modal-title" id="premiacaoModalLabel">Registrar Premiação</h5>
+                </div>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
             </div>
             <div class="modal-body">
+                <div class="text-center mb-4">
+                    <i class="fas fa-trophy text-warning fa-3x mb-3"></i>
+                    <h4>Confirmação de Premiação</h4>
+                </div>
+                
                 <p>Você está registrando uma premiação para:</p>
                 <div class="alert alert-info">
                     <div class="d-flex align-items-center">
                         <div class="ranking-badge ranking-1 me-3" id="posicao-premiacao">1</div>
                         <div>
                             <h5 class="alert-heading mb-1" id="nome-integrante-premiacao">Nome do Integrante</h5>
-                            <p class="mb-0">Mês/Ano: <span id="mes-ano-premiacao">01/2023</span></p>
+                            <p class="mb-0">Mês/Ano: <span id="mes-ano-premiacao" class="fw-bold">01/2023</span></p>
                         </div>
                     </div>
                 </div>
@@ -186,7 +341,9 @@
                     <input type="hidden" name="posicao" id="posicao-hidden">
                     <input type="hidden" name="mes" id="mes-hidden">
                     <input type="hidden" name="ano" id="ano-hidden">
-                    <button type="submit" class="btn btn-success">Registrar Premiação</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-award me-1"></i> Registrar Premiação
+                    </button>
                 </form>
             </div>
         </div>

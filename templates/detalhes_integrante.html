@@ -368,8 +368,8 @@
                                 <td>{{ pagamento.data_pagamento.strftime('%d/%m/%Y %H:%M') if pagamento.data_pagamento else '-' }}</td>
                                 <td>
                                     {% if pagamento.comprovante_path %}
-                                    <a href="{{ url_for('uploaded_file', filename=pagamento.comprovante_path) }}" class="btn btn-sm btn-info btn-action" target="_blank" title="Ver Comprovante">
-                                        <i class="fas fa-eye"></i>
+                                    <a class="btn btn-sm btn-success btn-action" title="Tudo Certo">
+                                        <i class="fas fa-check"></i>
                                     </a>
                                     {% endif %}
                                     

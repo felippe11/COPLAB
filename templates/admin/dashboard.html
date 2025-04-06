@@ -2,11 +2,129 @@
 
 {% block title %}Dashboard Administrativo - Sistema de Gestão de Pagamentos da Copa{% endblock %}
 
+{% block head %}
+{{ super() }}
+<style>
+    /* Dashboard cards styling */
+    .dashboard-card {
+        min-height: 130px;
+        border-radius: var(--border-radius);
+    }
+
+    .card-primary {
+        border-left: 4px solid var(--primary-color);
+    }
+
+    .card-warning {
+        border-left: 4px solid var(--warning-color);
+    }
+
+    .card-success {
+        border-left: 4px solid var(--success-color);
+    }
+
+    .card-info {
+        border-left: 4px solid var(--info-color);
+    }
+
+    .dashboard-icon {
+        font-size: 2.5rem;
+        opacity: 0.8;
+    }
+
+    /* Button action styling */
+    .btn-action {
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        margin-right: 0.25rem;
+    }
+
+    /* List group styling */
+    .list-group-item-action {
+        border-left: none;
+        border-right: none;
+        transition: all 0.2s;
+        padding: 1rem 1.25rem;
+    }
+
+    .list-group-item-action:first-child {
+        border-top: none;
+    }
+
+    .list-group-item-action:hover {
+        transform: translateX(5px);
+        background-color: rgba(52, 152, 219, 0.05);
+    }
+
+    /* Table styling */
+    .table {
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .table thead th {
+        background-color: var(--light-color);
+        border-top: none;
+        border-bottom: 2px solid var(--primary-color);
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.85rem;
+    }
+
+    .table tbody tr:hover {
+        background-color: rgba(52, 152, 219, 0.05);
+    }
+
+    .table th, .table td {
+        padding: 12px 15px;
+        vertical-align: middle;
+    }
+
+    /* Modal styling */
+    .modal-content {
+        border-radius: var(--border-radius);
+        overflow: hidden;
+        border: none;
+    }
+
+    .admin-header {
+        background: linear-gradient(135deg, #2980b9, #3498db);
+        padding: 1.5rem;
+        border-radius: var(--border-radius);
+        margin-bottom: 1.5rem;
+        box-shadow: var(--box-shadow);
+        color: white;
+    }
+
+    /* Special actions card */
+    .border-warning {
+        border: none;
+        border-left: 4px solid var(--warning-color);
+        border-radius: var(--border-radius);
+        box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    .border-warning .card-header {
+        background: linear-gradient(135deg, #f39c12, #e67e22);
+        color: white;
+        border-bottom: none;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="row mb-4">
-    <div class="col-12 d-flex justify-content-between align-items-center">
-        <h1 class="display-5 mb-0">Dashboard Administrativo</h1>
-        <a href="{{ url_for('admin_logout') }}" class="btn btn-outline-danger">
+<div class="admin-header">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h1 class="display-5 mb-0">Dashboard Administrativo</h1>
+            <p class="text-white-50 mb-0">Gerenciamento do Sistema de Pagamentos da Copa</p>
+        </div>
+        <a href="{{ url_for('admin_logout') }}" class="btn btn-outline-light">
             <i class="fas fa-sign-out-alt me-1"></i>Sair
         </a>
     </div>
@@ -17,13 +135,11 @@
     <div class="col-md-3">
         <div class="card dashboard-card card-primary h-100">
             <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="text-muted mb-1">Integrantes Ativos</h6>
-                        <h2 class="mb-0">{{ total_integrantes }}</h2>
-                    </div>
-                    <div class="dashboard-icon text-primary">
-                        <i class="fas fa-users"></i>
+                <div class="d-flex flex-column">
+                    <h6 class="text-muted mb-2">Integrantes Ativos</h6>
+                    <h2 class="display-6 mb-0 text-primary">{{ total_integrantes }}</h2>
+                    <div class="mt-auto text-end">
+                        <i class="fas fa-users fa-2x text-primary opacity-25"></i>
                     </div>
                 </div>
             </div>
@@ -34,13 +150,11 @@
     <div class="col-md-3">
         <div class="card dashboard-card card-warning h-100">
             <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="text-muted mb-1">Pagamentos Pendentes</h6>
-                        <h2 class="mb-0">{{ pagamentos_pendentes }}</h2>
-                    </div>
-                    <div class="dashboard-icon text-warning">
-                        <i class="fas fa-clock"></i>
+                <div class="d-flex flex-column">
+                    <h6 class="text-muted mb-2">Pagamentos Pendentes</h6>
+                    <h2 class="display-6 mb-0 text-warning">{{ pagamentos_pendentes }}</h2>
+                    <div class="mt-auto text-end">
+                        <i class="fas fa-clock fa-2x text-warning opacity-25"></i>
                     </div>
                 </div>
             </div>
@@ -51,13 +165,11 @@
     <div class="col-md-3">
         <div class="card dashboard-card card-success h-100">
             <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="text-muted mb-1">Saldo em Caixa</h6>
-                        <h2 class="mb-0">R$ {{ "%.2f"|format(saldo_total) }}</h2>
-                    </div>
-                    <div class="dashboard-icon text-success">
-                        <i class="fas fa-dollar-sign"></i>
+                <div class="d-flex flex-column">
+                    <h6 class="text-muted mb-2">Saldo em Caixa</h6>
+                    <h2 class="display-6 mb-0 text-success">R$ {{ "%.2f"|format(saldo_total) }}</h2>
+                    <div class="mt-auto text-end">
+                        <i class="fas fa-dollar-sign fa-2x text-success opacity-25"></i>
                     </div>
                 </div>
             </div>
@@ -68,13 +180,11 @@
     <div class="col-md-3">
         <div class="card dashboard-card card-info h-100">
             <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="text-muted mb-1">Mês Atual</h6>
-                        <h2 class="mb-0">{{ mes_atual|default(now.strftime('%B')) }}</h2>
-                    </div>
-                    <div class="dashboard-icon text-info">
-                        <i class="fas fa-calendar-alt"></i>
+                <div class="d-flex flex-column">
+                    <h6 class="text-muted mb-2">Mês Atual</h6>
+                    <h2 class="display-6 mb-0 text-info">{{ mes_atual|default(now.strftime('%B')) }}</h2>
+                    <div class="mt-auto text-end">
+                        <i class="fas fa-calendar-alt fa-2x text-info opacity-25"></i>
                     </div>
                 </div>
             </div>
@@ -82,73 +192,79 @@
     </div>
 </div>
 
-<!-- Gastos Recentes -->
-<div class="col-md-6">
-    <div class="card mb-4">
-        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">
-                <i class="fas fa-receipt me-2"></i>
-                Gastos Recentes
-            </h5>
-            <a href="{{ url_for('admin_gastos') }}" class="btn btn-light btn-sm">
-                Ver Todos
-            </a>
-        </div>
-        <div class="card-body">
-            {% if gastos_recentes|length > 0 %}
-            <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            <th>Descrição</th>
-                            <th>Valor</th>
-                            <th>Data</th>
-                            <th>Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for gasto in gastos_recentes %}
-                        <tr>
-                            <td>{{ gasto.descricao }}</td>
-                            <td>R$ {{ "%.2f"|format(gasto.valor) }}</td>
-                            <td>{{ gasto.data_gasto.strftime('%d/%m/%Y') }}</td>
-                            <td>
-                                {% if gasto.comprovante_path %}
-                                <a href="{{ url_for('uploaded_file', filename=gasto.comprovante_path) }}" class="btn btn-sm btn-info btn-action" target="_blank" title="Ver Comprovante">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+<div class="row">
+    <!-- Gastos Recentes -->
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header bg-gradient-primary text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center">
+                        <div class="dashboard-icon-header me-2">
+                            <i class="fas fa-receipt"></i>
+                        </div>
+                        <h5 class="mb-0">Gastos Recentes</h5>
+                    </div>
+                    <a href="{{ url_for('admin_gastos') }}" class="btn btn-light btn-sm">
+                        Ver Todos
+                    </a>
+                </div>
             </div>
-            {% else %}
-            <div class="alert alert-info mb-0">
-                <i class="fas fa-info-circle me-2"></i>
-                Não há gastos registrados recentemente.
-            </div>
-            {% endif %}
-            
-            <div class="text-center mt-3">
-                <a href="{{ url_for('admin_adicionar_gasto') }}" class="btn btn-success">
-                    <i class="fas fa-plus me-1"></i> Registrar Novo Gasto
-                </a>
+            <div class="card-body">
+                {% if gastos_recentes|length > 0 %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Descrição</th>
+                                <th>Valor</th>
+                                <th>Data</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for gasto in gastos_recentes %}
+                            <tr>
+                                <td>{{ gasto.descricao }}</td>
+                                <td><span class="text-danger fw-bold">R$ {{ "%.2f"|format(gasto.valor) }}</span></td>
+                                <td>{{ gasto.data_gasto.strftime('%d/%m/%Y') }}</td>
+                                <td>
+                                    {% if gasto.comprovante_path %}
+                                    <a href="{{ url_for('uploaded_file', filename=gasto.comprovante_path) }}" class="btn btn-sm btn-info btn-action" target="_blank" title="Ver Comprovante">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info mb-0">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Não há gastos registrados recentemente.
+                </div>
+                {% endif %}
+                
+                <div class="text-center mt-3">
+                    <a href="{{ url_for('admin_adicionar_gasto') }}" class="btn btn-success">
+                        <i class="fas fa-plus me-1"></i> Registrar Novo Gasto
+                    </a>
+                </div>
             </div>
         </div>
     </div>
-</div>
-
-<div class="row">    
+    
     <!-- Pagamentos Aguardando Validação -->
-    <div class="col-md-8">
+    <div class="col-md-6">
         <div class="card mb-4">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0">
-                    <i class="fas fa-check-circle me-2"></i>
-                    Pagamentos Aguardando Validação
-                </h5>
+            <div class="card-header bg-gradient-primary text-white">
+                <div class="d-flex align-items-center">
+                    <div class="dashboard-icon-header me-2">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <h5 class="mb-0">Pagamentos Aguardando Validação</h5>
+                </div>
             </div>
             <div class="card-body">
                 {% if pagamentos_aguardando|default([])|length > 0 %}
@@ -157,7 +273,6 @@
                         <thead>
                             <tr>
                                 <th>Integrante</th>
-                                <th>Categoria</th>
                                 <th>Mês/Ano</th>
                                 <th>Valor</th>
                                 <th>Data</th>
@@ -167,10 +282,13 @@
                         <tbody>
                             {% for pagamento in pagamentos_aguardando %}
                             <tr>
-                                <td>{{ pagamento.integrante.nome }}</td>
-                                <td>{{ pagamento.integrante.categoria.value }}</td>
+                                <td>
+                                    <span class="fw-bold">{{ pagamento.integrante.nome }}</span>
+                                    <br>
+                                    <small class="text-muted">{{ pagamento.integrante.categoria.value }}</small>
+                                </td>
                                 <td>{{ pagamento.mes_referencia }}/{{ pagamento.ano_referencia }}</td>
-                                <td>R$ {{ "%.2f"|format(pagamento.valor) }}</td>
+                                <td><span class="text-success fw-bold">R$ {{ "%.2f"|format(pagamento.valor) }}</span></td>
                                 <td>{{ pagamento.data_pagamento.strftime('%d/%m/%Y %H:%M') }}</td>
                                 <td>
                                     <a href="{{ url_for('uploaded_file', filename=pagamento.comprovante_path) }}" class="btn btn-sm btn-info btn-action" target="_blank" title="Visualizar Comprovante">
@@ -201,28 +319,32 @@
             </div>
         </div>
     </div>
-    
+</div>
+
+<div class="row">
     <!-- Links Rápidos -->
-    <div class="col-md-4">
+    <div class="col-md-8">
         <div class="card mb-4">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0">
-                    <i class="fas fa-link me-2"></i>
-                    Links Rápidos
-                </h5>
+            <div class="card-header bg-gradient-primary text-white">
+                <div class="d-flex align-items-center">
+                    <div class="dashboard-icon-header me-2">
+                        <i class="fas fa-link"></i>
+                    </div>
+                    <h5 class="mb-0">Links Rápidos</h5>
+                </div>
             </div>
             <div class="card-body">
                 <div class="list-group">
                     <a href="{{ url_for('admin_integrantes') }}" class="list-group-item list-group-item-action">
                         <div class="d-flex w-100 justify-content-between">
-                            <h5 class="mb-1"><i class="fas fa-users me-2"></i>Gerenciamento de Integrantes</h5>
+                            <h5 class="mb-1"><i class="fas fa-users me-2 text-primary"></i>Gerenciamento de Integrantes</h5>
                             <small><i class="fas fa-chevron-right"></i></small>
                         </div>
                         <p class="mb-1">Adicione, edite ou desative integrantes do sistema.</p>
                     </a>
                     <a href="{{ url_for('admin_ranking') }}" class="list-group-item list-group-item-action">
                         <div class="d-flex w-100 justify-content-between">
-                            <h5 class="mb-1"><i class="fas fa-trophy me-2"></i>Gerenciamento de Ranking Mensal</h5>
+                            <h5 class="mb-1"><i class="fas fa-trophy me-2 text-warning"></i>Gerenciamento de Ranking Mensal</h5>
                             <small><i class="fas fa-chevron-right"></i></small>
                         </div>
                         <p class="mb-1">Gerencie o ranking mensal e visualize as posições.</p>
@@ -230,78 +352,80 @@
                     
                     <a href="{{ url_for('admin_ranking_semestral') }}" class="list-group-item list-group-item-action">
                         <div class="d-flex w-100 justify-content-between">
-                            <h5 class="mb-1"><i class="fas fa-award me-2"></i>Gerenciamento de Ranking Semestral</h5>
+                            <h5 class="mb-1"><i class="fas fa-award me-2 text-success"></i>Gerenciamento de Ranking Semestral</h5>
                             <small><i class="fas fa-chevron-right"></i></small>
                         </div>
                         <p class="mb-1">Gerencie o ranking semestral e registre premiações semestrais (Junho e Dezembro).</p>
                     </a>
                     <a href="{{ url_for('admin_relatorios') }}" class="list-group-item list-group-item-action">
                         <div class="d-flex w-100 justify-content-between">
-                            <h5 class="mb-1"><i class="fas fa-chart-bar me-2"></i>Relatórios e Estatísticas</h5>
+                            <h5 class="mb-1"><i class="fas fa-chart-bar me-2 text-info"></i>Relatórios e Estatísticas</h5>
                             <small><i class="fas fa-chevron-right"></i></small>
                         </div>
                         <p class="mb-1">Visualize relatórios detalhados de pagamentos e exportações.</p>
                     </a>
                     <a href="{{ url_for('admin_gastos') }}" class="list-group-item list-group-item-action">
                         <div class="d-flex w-100 justify-content-between">
-                            <h5 class="mb-1"><i class="fas fa-receipt me-2"></i>Gerenciar Gastos</h5>
+                            <h5 class="mb-1"><i class="fas fa-receipt me-2 text-danger"></i>Gerenciar Gastos</h5>
                             <small><i class="fas fa-chevron-right"></i></small>
                         </div>
                         <p class="mb-1">Registre e gerencie os gastos da copa.</p>
                     </a>
-                    
-                    <!-- Botão para recalcular pontuações -->
-                    <div class="mt-4">
-                        <div class="card border-warning">
-                            <div class="card-header bg-warning text-dark">
-                                <h5 class="mb-0"><i class="fas fa-calculator me-2"></i>Ações Especiais</h5>
-                            </div>
-                            <div class="card-body">
-                                <h6 class="card-title">Configurar Sistema de Pontuação</h6>
-                                <form action="{{ url_for('admin_configurar_pontuacao') }}" method="POST" class="mb-3">
-                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <div class="row g-3 mb-3">
-                                        <div class="col-6">
-                                            <label for="pontuacao_primeiro" class="form-label">Pontuação do 1º colocado</label>
-                                            <input type="number" class="form-control" id="pontuacao_primeiro" name="pontuacao_primeiro" min="10" max="1000" value="{{ config_pontuacao.pontuacao_primeiro_colocado }}" required>
-                                        </div>
-                                        <div class="col-6">
-                                            <label for="reducao_pontos" class="form-label">Redução por posição</label>
-                                            <input type="number" class="form-control" id="reducao_pontos" name="reducao_pontos" min="1" max="{{ config_pontuacao.pontuacao_primeiro_colocado }}" value="{{ config_pontuacao.reducao_pontos_por_posicao }}" required>
-                                        </div>
-                                    </div>
-                                    <div class="row g-3 mb-3">
-                                        <div class="col-12">
-                                            <label for="pontuacao_minima" class="form-label">Pontuação mínima</label>
-                                            <input type="number" class="form-control" id="pontuacao_minima" name="pontuacao_minima" min="1" max="{{ config_pontuacao.pontuacao_primeiro_colocado }}" value="{{ config_pontuacao.pontuacao_minima }}" required>
-                                            <div class="form-text">Pontuação mínima que qualquer integrante pode receber, independente da posição.</div>
-                                        </div>
-                                    </div>
-                                    <div class="form-check mb-3">
-                                        <input class="form-check-input" type="checkbox" id="recalcular" name="recalcular" value="true">
-                                        <label class="form-check-label" for="recalcular">
-                                            Recalcular todas as pontuações após salvar
-                                        </label>
-                                    </div>
-                                    <button type="submit" class="btn btn-primary w-100">
-                                        <i class="fas fa-save me-2"></i>Salvar Configurações
-                                    </button>
-                                </form>
-                                
-                                <hr>
-                                
-                                <h6 class="card-title">Recalcular Pontuações</h6>
-                                <p class="card-text">Recalcule as pontuações de todos os pagamentos com as configurações atuais.</p>
-                                <form action="{{ url_for('admin_recalcular_pontuacoes') }}" method="POST">
-                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <button type="submit" class="btn btn-warning w-100">
-                                        <i class="fas fa-sync me-2"></i>Recalcular Pontuações
-                                    </button>
-                                </form>
-                            </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Configurações e Ações Especiais -->
+    <div class="col-md-4">
+        <div class="card mb-4 border-warning">
+            <div class="card-header text-white">
+                <h5 class="mb-0"><i class="fas fa-calculator me-2"></i>Ações Especiais</h5>
+            </div>
+            <div class="card-body">
+                <h6 class="card-title fw-bold">Configurar Sistema de Pontuação</h6>
+                <form action="{{ url_for('admin_configurar_pontuacao') }}" method="POST" class="mb-3">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="row g-3 mb-3">
+                        <div class="col-12">
+                            <label for="pontuacao_primeiro" class="form-label">Pontuação do 1º colocado</label>
+                            <input type="number" class="form-control" id="pontuacao_primeiro" name="pontuacao_primeiro" min="10" max="1000" value="{{ config_pontuacao.pontuacao_primeiro_colocado }}" required>
                         </div>
                     </div>
-                </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-12">
+                            <label for="reducao_pontos" class="form-label">Redução por posição</label>
+                            <input type="number" class="form-control" id="reducao_pontos" name="reducao_pontos" min="1" max="{{ config_pontuacao.pontuacao_primeiro_colocado }}" value="{{ config_pontuacao.reducao_pontos_por_posicao }}" required>
+                        </div>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-12">
+                            <label for="pontuacao_minima" class="form-label">Pontuação mínima</label>
+                            <input type="number" class="form-control" id="pontuacao_minima" name="pontuacao_minima" min="1" max="{{ config_pontuacao.pontuacao_primeiro_colocado }}" value="{{ config_pontuacao.pontuacao_minima }}" required>
+                            <div class="form-text">Pontuação mínima que qualquer integrante pode receber, independente da posição.</div>
+                        </div>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="recalcular" name="recalcular" value="true">
+                        <label class="form-check-label" for="recalcular">
+                            Recalcular todas as pontuações após salvar
+                        </label>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-save me-2"></i>Salvar Configurações
+                    </button>
+                </form>
+                
+                <hr>
+                
+                <h6 class="card-title fw-bold">Recalcular Pontuações</h6>
+                <p class="card-text">Recalcule as pontuações de todos os pagamentos com as configurações atuais.</p>
+                <form action="{{ url_for('admin_recalcular_pontuacoes') }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-warning w-100 text-white">
+                        <i class="fas fa-sync me-2"></i>Recalcular Pontuações
+                    </button>
+                </form>
             </div>
         </div>
     </div>
@@ -311,7 +435,7 @@
 <div class="modal fade" id="validarModal" tabindex="-1" aria-labelledby="validarModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header bg-success text-white">
+            <div class="modal-header bg-gradient-success text-white">
                 <h5 class="modal-title" id="validarModalLabel">
                     <i class="fas fa-check-circle me-2"></i>
                     Validar Pagamento
@@ -344,7 +468,7 @@
 <div class="modal fade" id="rejeitarModal" tabindex="-1" aria-labelledby="rejeitarModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header bg-danger text-white">
+            <div class="modal-header bg-gradient-danger text-white">
                 <h5 class="modal-title" id="rejeitarModalLabel">
                     <i class="fas fa-times-circle me-2"></i>
                     Rejeitar Pagamento

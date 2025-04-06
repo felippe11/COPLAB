@@ -2,41 +2,174 @@
 
 {% block title %}Adicionar Gasto - Sistema de Gestão de Pagamentos da Copa{% endblock %}
 
+{% block head %}
+{{ super() }}
+<style>
+    /* Admin header */
+    .admin-header {
+        background: linear-gradient(135deg, #2980b9, #3498db);
+        padding: 1.5rem;
+        border-radius: var(--border-radius);
+        margin-bottom: 1.5rem;
+        box-shadow: var(--box-shadow);
+        color: white;
+    }
+
+    /* Breadcrumb styling */
+    .breadcrumb {
+        background-color: transparent;
+        padding: 0.5rem 0;
+    }
+
+    .breadcrumb-item a {
+        color: var(--primary-color);
+        text-decoration: none;
+    }
+
+    .breadcrumb-item a:hover {
+        text-decoration: underline;
+    }
+
+    /* Form styling */
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-control, .input-group {
+        border-radius: var(--border-radius);
+        padding: 0.6rem 1rem;
+    }
+
+    .input-group-text {
+        background-color: #f8f9fa;
+    }
+
+    .form-control:focus, .input-group:focus-within {
+        box-shadow: 0 0 0 0.25rem rgba(52, 152, 219, 0.25);
+        border-color: var(--primary-color);
+    }
+
+    .form-text {
+        color: #6c757d;
+        margin-top: 0.5rem;
+    }
+
+    /* Dashboard icon */
+    .dashboard-icon-header {
+        font-size: 1.5rem;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background-color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Card styling */
+    .card {
+        border-radius: var(--border-radius);
+        overflow: hidden;
+        border: none;
+        box-shadow: var(--box-shadow);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    /* File upload styling */
+    .file-upload-wrapper {
+        position: relative;
+        margin-bottom: 1rem;
+        border: 2px dashed #dee2e6;
+        border-radius: var(--border-radius);
+        padding: 2rem;
+        text-align: center;
+        transition: all 0.2s;
+        background-color: #f8f9fa;
+    }
+
+    .file-upload-wrapper:hover {
+        border-color: var(--primary-color);
+        background-color: rgba(52, 152, 219, 0.05);
+    }
+
+    /* Button styling */
+    .btn-custom-primary {
+        background: linear-gradient(45deg, #3498db, #2980b9);
+        border: none;
+        color: white;
+        padding: 0.6rem 1.5rem;
+        border-radius: 0.3rem;
+        transition: all 0.2s;
+    }
+
+    .btn-custom-primary:hover {
+        background: linear-gradient(45deg, #2980b9, #1f6aa1);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-custom-secondary {
+        background: linear-gradient(45deg, #6c757d, #495057);
+        border: none;
+        color: white;
+        padding: 0.6rem 1.5rem;
+        border-radius: 0.3rem;
+        transition: all 0.2s;
+    }
+
+    .btn-custom-secondary:hover {
+        background: linear-gradient(45deg, #5a6268, #343a40);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="row mb-4">
-    <div class="col-12">
-        <h1 class="display-5 mb-4">Adicionar Novo Gasto</h1>
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="{{ url_for('admin_dashboard') }}">Dashboard</a></li>
-                <li class="breadcrumb-item"><a href="{{ url_for('admin_gastos') }}">Gastos</a></li>
-                <li class="breadcrumb-item active">Adicionar Gasto</li>
-            </ol>
-        </nav>
+<div class="admin-header">
+    <div class="row align-items-center">
+        <div class="col">
+            <h1 class="display-5 mb-0">Adicionar Novo Gasto</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin_dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('admin_gastos') }}">Gastos</a></li>
+                    <li class="breadcrumb-item active">Adicionar Gasto</li>
+                </ol>
+            </nav>
+        </div>
     </div>
 </div>
 
 <div class="row justify-content-center">
     <div class="col-md-8">
         <div class="card">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0">
-                    <i class="fas fa-plus-circle me-2"></i>
-                    Registrar Novo Gasto
-                </h5>
+            <div class="card-header bg-gradient-primary text-white">
+                <div class="d-flex align-items-center">
+                    <div class="dashboard-icon-header me-2">
+                        <i class="fas fa-plus-circle"></i>
+                    </div>
+                    <h5 class="mb-0">Registrar Novo Gasto</h5>
+                </div>
             </div>
-            <div class="card-body">
+            <div class="card-body p-4">
                 <form method="POST" enctype="multipart/form-data" action="{{ url_for('admin_adicionar_gasto') }}">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     
-                    <div class="mb-3">
-                        <label for="descricao" class="form-label">Descrição do Gasto</label>
+                    <div class="form-group mb-3">
+                        <label for="descricao" class="form-label fw-bold">Descrição do Gasto</label>
                         <input type="text" class="form-control" id="descricao" name="descricao" required
                                placeholder="Ex: Compra de café, açúcar, biscoitos, etc.">
+                        <div class="form-text">Descreva de forma detalhada o que foi comprado.</div>
                     </div>
                     
-                    <div class="mb-3">
-                        <label for="valor" class="form-label">Valor (R$)</label>
+                    <div class="form-group mb-3">
+                        <label for="valor" class="form-label fw-bold">Valor (R$)</label>
                         <div class="input-group">
                             <span class="input-group-text">R$</span>
                             <input type="text" class="form-control" id="valor" name="valor" required
@@ -45,17 +178,21 @@
                         <div class="form-text">Use ponto ou vírgula para separar os centavos.</div>
                     </div>
                     
-                    <div class="mb-4">
-                        <label for="comprovante" class="form-label">Comprovante (opcional)</label>
-                        <input class="form-control" type="file" id="comprovante" name="comprovante" accept=".jpg,.jpeg,.png,.pdf">
-                        <div class="form-text">Formatos aceitos: JPG, PNG, PDF. Tamanho máximo: 16MB.</div>
+                    <div class="form-group mb-4">
+                        <label for="comprovante" class="form-label fw-bold">Comprovante (opcional)</label>
+                        <div class="file-upload-wrapper">
+                            <input class="form-control" type="file" id="comprovante" name="comprovante" accept=".jpg,.jpeg,.png,.pdf">
+                            <div class="form-text mt-2">
+                                <i class="fas fa-info-circle me-1"></i> Formatos aceitos: JPG, PNG, PDF. Tamanho máximo: 16MB.
+                            </div>
+                        </div>
                     </div>
                     
                     <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                        <a href="{{ url_for('admin_gastos') }}" class="btn btn-secondary me-md-2">
+                        <a href="{{ url_for('admin_gastos') }}" class="btn btn-custom-secondary me-md-2">
                             <i class="fas fa-times me-1"></i> Cancelar
                         </a>
-                        <button type="submit" class="btn btn-primary">
+                        <button type="submit" class="btn btn-custom-primary">
                             <i class="fas fa-save me-1"></i> Registrar Gasto
                         </button>
                     </div>
