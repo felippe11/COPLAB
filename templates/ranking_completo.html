@@ -226,36 +226,6 @@
                 </div>
             </div>
         </div>
-
-        <div class="card mb-4">
-            <div class="card-header bg-gradient-primary text-white">
-                <div class="d-flex align-items-center">
-                    <div class="dashboard-icon-header me-2">
-                        <i class="fas fa-info-circle"></i>
-                    </div>
-                    <h5 class="mb-0">Informações do Sistema</h5>
-                </div>
-            </div>
-            <div class="card-body">
-                <div class="alert alert-info mb-3">
-                    <h5 class="d-flex align-items-center">
-                        <i class="fas fa-coffee me-2"></i>
-                        Copa do Laboratório
-                    </h5>
-                    <p class="mb-0">Sistema de gestão de pagamentos para a copa do laboratório.</p>
-                </div>
-                
-                <h6 class="mb-3 fw-bold">Valores por Categoria:</h6>
-                <ul class="info-list">
-                    {% for categoria in categorias %}
-                    <li class="info-list-item">
-                        <span>{{ categoria.value }}</span>
-                        <span class="badge bg-primary rounded-pill px-3">R$ {{ "%.2f"|format(valores_categoria[categoria]) }}</span>
-                    </li>
-                    {% endfor %}
-                </ul>
-            </div>
-        </div>
     </div>
 </div>
 {% endblock %}
