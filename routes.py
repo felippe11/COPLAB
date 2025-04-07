@@ -466,7 +466,7 @@ def register_routes(app):
             if 1 <= mes <= 6:
                 semestres_anos.add((SemestreEnum.PRIMEIRO, ano))
             else:
-                semestres_anos.add((SemestreEnum.SEGUNDO, ano))
+                semestres_anos.add((SemestreEnum.SECUNDO, ano))
         
         # Atualizar cada ranking semestral
         for semestre, ano in semestres_anos:
@@ -1600,26 +1600,6 @@ def register_routes(app):
         mes_atual = datetime.now().month
         ano_atual = datetime.now().year
         
-        # Obter parâmetros da URL
-        mes_selecionado = request.args.get('mes', mes_atual, type=int)
-        ano_selecionado = request.args.get('ano', ano_atual, type=int)
-        
-        # Get full ranking for selected month
-        ranking = obter_ranking_mensal(mes_selecionado, ano_selecionado, limite=None)  # No limit to get all rankings
-        
-        return render_template('ranking_completo.html',
-                            ranking=ranking,
-                            mes_atual=mes_atual, 
-                            ano_atual=ano_atual,
-                            mes_selecionado=mes_selecionado,
-                            ano_selecionado=ano_selecionado)
-
-    @app.route('/ranking/semestral')
-    def ranking_semestral():
-        # Obter ano atual
-        ano_atual = datetime.now().year
-        mes_atual = datetime.now().month
-        
         # Determinar semestre atual
         if 1 <= mes_atual <= 6:
             semestre_atual = SemestreEnum.PRIMEIRO
@@ -1627,33 +1607,39 @@ def register_routes(app):
             semestre_atual = SemestreEnum.SEGUNDO
         
         # Obter parâmetros da URL
+        mes_selecionado = request.args.get('mes', mes_atual, type=int)
+        ano_selecionado = request.args.get('ano', ano_atual, type=int)
         semestre_selecionado_str = request.args.get('semestre', '')
-        if semestre_selecionado_str == 'primeiro':
+        
+        # Determinar o semestre selecionado
+        if semestre_selecionado_str == 'PRIMEIRO':
             semestre_selecionado = SemestreEnum.PRIMEIRO
-        elif semestre_selecionado_str == 'segundo':
+        elif semestre_selecionado_str == 'SEGUNDO':
             semestre_selecionado = SemestreEnum.SEGUNDO
         else:
             semestre_selecionado = semestre_atual
-            
-        ano_selecionado = request.args.get('ano', ano_atual, type=int)
         
-        # Obter ranking semestral
-        ranking = obter_ranking_semestral(semestre_selecionado, ano_selecionado)
+        # Obter configurações de pontuação
+        config_pontuacao = obter_configuracoes_pontuacao()
         
-        # Verificar se existe premiação semestral
-        premiacao = PremiacaoSemestral.query.filter_by(
-            semestre=semestre_selecionado,
-            ano=ano_selecionado,
-            posicao=1  # Primeiro lugar
-        ).first()
+        # Get full ranking for selected month
+        ranking = obter_ranking_mensal(mes_selecionado, ano_selecionado, limite=None)  # No limit to get all rankings
         
-        return render_template('ranking_semestral.html',
+        # Obter o ranking semestral
+        ranking_semestral = obter_ranking_semestral(semestre_selecionado, ano_selecionado, limite=None)
+        
+        return render_template('ranking_completo.html',
                             ranking=ranking,
-                            semestre_atual=semestre_atual,
+                            ranking_semestral=ranking_semestral,
+                            mes_atual=mes_atual, 
                             ano_atual=ano_atual,
-                            semestre_selecionado=semestre_selecionado,
+                            mes_selecionado=mes_selecionado,
                             ano_selecionado=ano_selecionado,
-                            premiacao_existente=premiacao is not None)
+                            semestre_atual=semestre_atual,
+                            config_pontuacao=config_pontuacao,
+                            categorias=CategoriaEnum,
+                            valores_categoria=VALORES_CATEGORIA)
+
 
     @app.route('/admin/ranking')
     @admin_required

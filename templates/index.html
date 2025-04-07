@@ -2,253 +2,6 @@
 
 {% block title %}Dashboard - Sistema de Gestão de Pagamentos da Copa{% endblock %}
 
-{% block head %}
-{{ super() }}
-<style>
-    :root {
-        --primary-color: #3498db;
-        --success-color: #2ecc71;
-        --info-color: #17a2b8;
-        --warning-color: #f39c12;
-        --danger-color: #e74c3c;
-        --dark-color: #343a40;
-        --light-color: #f8f9fa;
-        --border-radius: 0.5rem;
-        --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    }
-
-    /* Card styling */
-    .card {
-        border-radius: var(--border-radius);
-        box-shadow: var(--box-shadow);
-        border: none;
-        margin-bottom: 1.5rem;
-        transition: transform 0.2s, box-shadow 0.2s;
-        animation: fadeIn 0.3s ease-out;
-    }
-
-    .card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
-    }
-
-    .card-header {
-        border-top-left-radius: var(--border-radius);
-        border-top-right-radius: var(--border-radius);
-        font-weight: 500;
-        padding: 0.75rem 1.25rem;
-    }
-
-    .dashboard-card {
-        min-height: 160px;
-    }
-
-    .card-success {
-        border-left: 4px solid var(--success-color);
-    }
-
-    .card-info {
-        border-left: 4px solid var(--info-color);
-    }
-
-    .card-primary {
-        border-left: 4px solid var(--primary-color);
-    }
-
-    /* Dashboard icons */
-    .dashboard-icon {
-        font-size: 2.5rem;
-        opacity: 0.8;
-    }
-
-    .dashboard-icon-header {
-        font-size: 1.5rem;
-        width: 40px;
-        height: 40px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 50%;
-        background-color: rgba(255, 255, 255, 0.2);
-    }
-
-    /* Ranking badges */
-    .ranking-badge {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        color: white;
-        font-weight: bold;
-    }
-
-    .ranking-1 {
-        background: linear-gradient(45deg, #FFD700, #FFA500);
-        box-shadow: 0 2px 5px rgba(255, 215, 0, 0.3);
-    }
-
-    .ranking-2 {
-        background: linear-gradient(45deg, #C0C0C0, #A9A9A9);
-        box-shadow: 0 2px 5px rgba(192, 192, 192, 0.3);
-    }
-
-    .ranking-3 {
-        background: linear-gradient(45deg, #CD7F32, #8B4513);
-        box-shadow: 0 2px 5px rgba(205, 127, 50, 0.3);
-    }
-
-    .ranking-badge:not(.ranking-1):not(.ranking-2):not(.ranking-3) {
-        background: linear-gradient(45deg, var(--primary-color), #2574a9);
-        box-shadow: 0 2px 5px rgba(52, 152, 219, 0.3);
-    }
-
-    /* Table styling */
-    .table {
-        border-collapse: separate;
-        border-spacing: 0;
-    }
-
-    .table thead th {
-        background-color: var(--light-color);
-        border-top: none;
-        border-bottom: 2px solid var(--primary-color);
-        font-weight: 600;
-        text-transform: uppercase;
-        font-size: 0.85rem;
-    }
-
-    .table tbody tr:hover {
-        background-color: rgba(52, 152, 219, 0.05);
-    }
-
-    .table th, .table td {
-        padding: 12px 15px;
-        vertical-align: middle;
-    }
-
-    /* Loading animation */
-    .loading-container {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 2rem;
-    }
-
-    .loading-spinner {
-        width: 50px;
-        height: 50px;
-        border: 5px solid rgba(0, 0, 0, 0.1);
-        border-radius: 50%;
-        border-top-color: var(--primary-color);
-        animation: spin 1s ease-in-out infinite;
-    }
-
-    @keyframes spin {
-        to { transform: rotate(360deg); }
-    }
-
-    /* Fade in animation for cards */
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* Stagger animations */
-    .row > div:nth-child(1) .card { animation-delay: 0s; }
-    .row > div:nth-child(2) .card { animation-delay: 0.1s; }
-    .row > div:nth-child(3) .card { animation-delay: 0.2s; }
-
-    /* Better color gradients */
-    .bg-gradient-primary {
-        background: linear-gradient(45deg, #3498db, #2980b9) !important;
-    }
-
-    .bg-gradient-success {
-        background: linear-gradient(45deg, #2ecc71, #27ae60) !important;
-    }
-
-    .bg-gradient-info {
-        background: linear-gradient(45deg, #17a2b8, #138496) !important;
-    }
-
-    /* Filter controls */
-    .filter-container {
-        display: flex;
-        align-items: center;
-        margin-bottom: 1rem;
-    }
-
-    .filter-group {
-        margin-right: 1rem;
-        max-width: 320px;
-    }
-
-    /* Custom button styling */
-    .btn-custom-primary {
-        background: linear-gradient(45deg, #3498db, #2980b9);
-        border: none;
-        color: white;
-    }
-
-    .btn-custom-primary:hover {
-        background: linear-gradient(45deg, #2980b9, #1f6aa1);
-        color: white;
-    }
-
-    /* Page header */
-    .page-header {
-        margin-bottom: 2rem;
-        padding-bottom: 1rem;
-        border-bottom: 1px solid rgba(0,0,0,0.1);
-    }
-
-    /* Responsive adjustments */
-    @media (max-width: 768px) {
-        .dashboard-card {
-            margin-bottom: 1rem;
-        }
-        
-        .filter-container {
-            flex-direction: column;
-            align-items: stretch;
-        }
-        
-        .filter-group {
-            margin-bottom: 0.5rem;
-            width: 100%;
-            max-width: none;
-        }
-        
-        .card-header h5 {
-            font-size: 1rem;
-        }
-    }
-
-    /* Custom card info styling */
-    .info-list {
-        list-style: none;
-        padding-left: 0;
-    }
-
-    .info-list-item {
-        padding: 10px 15px;
-        margin-bottom: 8px;
-        border-radius: var(--border-radius);
-        background-color: rgba(52, 152, 219, 0.05);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .info-list-item:hover {
-        background-color: rgba(52, 152, 219, 0.1);
-    }
-</style>
-{% endblock %}
-
 {% block content %}
 <div class="page-header">
     <div class="row align-items-center">
@@ -264,7 +17,7 @@
 
 <div class="row mb-4">
     <!-- Card de Saldo em Caixa -->
-    <div class="col-md-4">
+    <div class="col-md-6 mb-4">
         <div class="card dashboard-card card-success h-100">
             <div class="card-body">
                 <div class="d-flex flex-column">
@@ -289,42 +42,91 @@
         </div>
     </div>
     
-    <!-- Card de Mês Atual -->
-    <div class="col-md-4">
+    <!-- Card de Ação Rápida -->
+    <div class="col-md-6 mb-4">
         <div class="card dashboard-card card-info h-100">
             <div class="card-body">
                 <div class="d-flex flex-column">
-                    <h6 class="text-muted mb-2">Período Atual</h6>
-                    <h2 class="display-6 mb-0 text-info">{{ mes_atual }}/{{ ano_atual }}</h2>
-                    <div class="mt-3 d-flex align-items-center">
-                        <i class="fas fa-calendar-alt text-info me-2"></i>
-                        <span>
-                            {% if semestre_atual.value == 'PRIMEIRO' %}
-                            1º Semestre/{{ ano_atual }}
-                            {% else %}
-                            2º Semestre/{{ ano_atual }}
-                            {% endif %}
-                        </span>
+                    <div class="d-grid gap-2 align-items-center">
+                        <h6 class="text-muted mb-2">
+                            <i class="fas fa-bolt me-2"></i>Ação Rápida
+                        </h6>
+                        <a href="{{ url_for('buscar_integrante') }}" class="btn btn-outline-primary">
+                            <i class="fas fa-search me-2"></i>Buscar Integrante
+                        </a>
+                        <a href="{{ url_for('ranking_completo') }}" class="btn btn-outline-primary">
+                            <i class="fas fa-medal me-2"></i>Ranking Completo
+                        </a>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    
-    <!-- Card de Ação Rápida -->
-    <div class="col-md-4">
-        <div class="card dashboard-card card-primary h-100">
-            <div class="card-body">
-                <div class="d-flex flex-column">
-                    <div class="d-grid gap-2 align-items-center">
-                        <h6 class="text-muted mb-3">
-                            <i class="fas fa-plus-circle me-2"></i>Registre seu Pagamento
-                        </h6>
-                        <a href="{{ url_for('buscar_integrante') }}" class="btn btn-outline-primary">
-                            <i class="fas fa-search me-2"></i>Buscar Integrante
-                        </a>
+</div>
+
+<div class="row">
+    <!-- Informações do sistema -->
+    <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header bg-gradient-primary text-white">
+                    <div class="d-flex align-items-center">
+                        <div class="dashboard-icon-header me-2">
+                            <i class="fas fa-info-circle"></i>
+                        </div>
+                        <h5 class="mb-0">Informações do Sistema</h5>
                     </div>
                 </div>
+                <div class="card-body">
+                    <div class="alert alert-info mb-3">
+                        <h5 class="d-flex align-items-center">
+                            <i class="fas fa-coffee me-2"></i>
+                            CopLab - Sistema de gestão de pagamentos da copa.
+                        </h5>
+                    </div>
+                    
+                    <h6 class="mb-3 fw-bold">Valores por Categoria:</h6>
+                    <ul class="info-list">
+                        {% for categoria in categorias %}
+                        <li class="info-list-item">
+                            <span>{{ categoria.value }}</span>
+                            <span class="badge bg-primary rounded-pill px-3">R$ {{ "%.2f"|format(valores_categoria[categoria]) }}</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+    </div>
+    
+    <!-- Informações do Sistema -->
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header bg-gradient-primary text-white">
+                <div class="d-flex align-items-center">
+                    <div class="dashboard-icon-header me-2">
+                        <i class="fas fa-medal"></i>
+                    </div>
+                    <h5 class="mb-0">Pódio do Semestre</h5>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    {% for i in range(1, 4) %}
+                        {% set podio = ranking|selectattr('posicao', 'eq', i)|first|default(None) %}
+                        <li class="list-group-item">
+                            <div class="d-flex align-items-center">
+                                <div class="ranking-badge ranking-{{ i }} me-3">{{ i }}</div>
+                                {% if podio %}
+                                    <div>
+                                        <h6 class="mb-0">{{ podio.integrante.nome }}</h6>
+                                        <small class="text-muted">{{ podio.pontos }} pontos</small>
+                                    </div>
+                                {% else %}
+                                    <div class="text-muted">Posição não ocupada</div>
+                                {% endif %}
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
             </div>
         </div>
     </div>
@@ -467,250 +269,6 @@
                 <div class="filtro-info mt-2 text-muted text-center">
                     <small>Mostrando: <span id="filtro-atual" class="fw-bold">Mês {{ mes_atual }}/{{ ano_atual }}</span></small>
                 </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="row">
-    <!-- Ranking do Mês -->
-    <div class="col-md-8">
-        <div class="card mb-4">
-            <div class="card-header bg-gradient-primary text-white">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div class="d-flex align-items-center">
-                        <div class="dashboard-icon-header me-2">
-                            <i class="fas fa-trophy"></i>
-                        </div>
-                        <h5 class="mb-0">
-                            <span id="ranking-titulo">Ranking de Pagamentos - {{ mes_atual }}/{{ ano_atual }}</span>
-                        </h5>
-                    </div>
-                </div>
-            </div>
-            <div class="card-body" id="ranking-container">
-                <div class="filter-container">
-                    <div id="filtros-ranking" class="filter-group">
-                        <!-- Filtros do Ranking Mensal -->
-                        <div id="filtro-mensal" class="input-group input-group-sm">
-                            <span class="input-group-text bg-light">
-                                <i class="fas fa-filter"></i>
-                            </span>
-                            <select id="filtro-mes" class="form-select">
-                                {% for i in range(1, 13) %}
-                                <option value="{{ i }}" {% if i == mes_atual|int %}selected{% endif %}>{{ i }}</option>
-                                {% endfor %}
-                            </select>
-                            <span class="input-group-text">/</span>
-                            <select id="filtro-ano-mensal" class="form-select">
-                                {% for ano in range(ano_atual-2, ano_atual+1) %}
-                                <option value="{{ ano }}" {% if ano == ano_atual %}selected{% endif %}>{{ ano }}</option>
-                                {% endfor %}
-                            </select>
-                            <button id="btn-filtrar-mensal" class="btn btn-light"><i class="fas fa-search"></i></button>
-                        </div>
-                        <!-- Filtros do Ranking Semestral (inicialmente oculto) -->
-                        <div id="filtro-semestral" class="input-group input-group-sm" style="display: none;">
-                            <span class="input-group-text bg-light">
-                                <i class="fas fa-filter"></i>
-                            </span>
-                            <select id="filtro-semestre" class="form-select">
-                                <option value="PRIMEIRO" {% if semestre_atual.value == 'PRIMEIRO' %}selected{% endif %}>1º Semestre</option>
-                                <option value="SEGUNDO" {% if semestre_atual.value == 'SEGUNDO' %}selected{% endif %}>2º Semestre</option>
-                            </select>
-                            <span class="input-group-text">/</span>
-                            <select id="filtro-ano-semestral" class="form-select">
-                                {% for ano in range(ano_atual-2, ano_atual+1) %}
-                                <option value="{{ ano }}" {% if ano == ano_atual %}selected{% endif %}>{{ ano }}</option>
-                                {% endfor %}
-                            </select>
-                            <button id="btn-filtrar-semestral" class="btn btn-light"><i class="fas fa-search"></i></button>
-                        </div>
-                    </div>
-                    <div class="btn-group btn-group-sm" role="group">
-                        <button type="button" class="btn btn-light active" id="btn-ranking-mensal">Mensal</button>
-                        <button type="button" class="btn btn-light" id="btn-ranking-semestral">Semestral</button>
-                    </div>
-                </div>
-
-                <!-- Conteúdo do Ranking Mensal -->
-                <div id="ranking-mensal">
-                    {% if ranking|length > 0 %}
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th width="80">Posição</th>
-                                    <th>Integrante</th>
-                                    <th>Categoria</th>
-                                    <th>Pontuação</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for item in ranking %}
-                                <tr>
-                                    <td>
-                                        <div class="ranking-badge ranking-{{ item.posicao }}">{{ item.posicao }}</div>
-                                    </td>
-                                    <td>{{ item.integrante.nome }}</td>
-                                    <td>
-                                        <span class="badge bg-light text-dark">
-                                            {{ item.integrante.categoria.value }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span class="fw-bold text-primary">{{ item.pontos }}</span>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    {% else %}
-                    <div class="alert alert-info mb-0">
-                        <i class="fas fa-info-circle me-2"></i>
-                        Ainda não há pagamentos registrados para este mês.
-                    </div>
-                    {% endif %}
-                </div>
-                
-                <!-- Conteúdo do Ranking Semestral (inicialmente oculto) -->
-                <div id="ranking-semestral" style="display: none;">
-                    {% if ranking_semestral|default([])|length > 0 %}
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th width="80">Posição</th>
-                                    <th>Integrante</th>
-                                    <th>Categoria</th>
-                                    <th>Pontuação</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for item in ranking_semestral %}
-                                <tr>
-                                    <td>
-                                        <div class="ranking-badge ranking-{{ item.posicao }}">{{ item.posicao }}</div>
-                                    </td>
-                                    <td>{{ item.integrante.nome }}</td>
-                                    <td>
-                                        <span class="badge bg-light text-dark">
-                                            {{ item.integrante.categoria.value }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span class="fw-bold text-primary">{{ item.pontos }}</span>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    {% else %}
-                    <div class="alert alert-info mb-0">
-                        <i class="fas fa-info-circle me-2"></i>
-                        Ainda não há ranking semestral disponível para este período.
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Informações do Sistema -->
-    <div class="col-md-4">
-        <div class="card mb-4" id="card-info-semestral" style="display: none;">
-            <div class="card-header bg-gradient-primary text-white">
-                <div class="d-flex align-items-center">
-                    <div class="dashboard-icon-header me-2">
-                        <i class="fas fa-info-circle"></i>
-                    </div>
-                    <h5 class="mb-0">Ranking Semestral</h5>
-                </div>
-            </div>
-            <div class="card-body">
-                <div class="alert alert-info">
-                    <h5 class="d-flex align-items-center">
-                        <i class="fas fa-trophy me-2"></i>
-                        Como funciona o ranking semestral?
-                    </h5>
-                    <p>O ranking semestral acumula pontos ao longo do semestre com base na ordem de pagamento de cada mês. Quanto mais cedo o pagamento for realizado, maior a pontuação.</p>
-                    
-                    <h6 class="mt-3">Sistema de pontuação:</h6>
-                    <ul class="mb-3">
-                        <li>O primeiro a pagar em cada mês recebe <span class="fw-bold">{{ config_pontuacao.pontuacao_primeiro_colocado }}</span> pontos;</li>
-                        <li>Cada posição seguinte recebe menos <span class="fw-bold">{{ config_pontuacao.reducao_pontos_por_posicao }}</span> pontos;</li>
-                        <li>A pontuação mínima é de <span class="fw-bold">{{ config_pontuacao.pontuacao_minima }}</span> pontos;</li>
-                        <li>O ranking semestral soma os pontos acumulados em todos os meses do semestre.</li>
-                    </ul>
-                    
-                    <div class="card bg-light">
-                        <div class="card-body py-2">
-                            <h6 class="mb-2">Premiação semestral:</h6>
-                            <ul class="mb-0">
-                                <li>Primeiro semestre: premiação em Junho;</li>
-                                <li>Segundo semestre: premiação em Dezembro.</li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="card mb-4" id="card-info-mensal">
-            <div class="card-header bg-gradient-primary text-white">
-                <div class="d-flex align-items-center">
-                    <div class="dashboard-icon-header me-2">
-                        <i class="fas fa-info-circle"></i>
-                    </div>
-                    <h5 class="mb-0">Ranking Mensal</h5>
-                </div>
-            </div>
-            <div class="card-body">
-                <div class="alert alert-info">
-                    <h5 class="d-flex align-items-center">
-                        <i class="fas fa-trophy me-2"></i>
-                        Como funciona o ranking mensal?
-                    </h5>
-                    <p>O ranking mensal é baseado na ordem de pagamento. Quanto mais cedo o pagamento for realizado, maior a pontuação.</p>
-                    
-                    <h6 class="mt-3">Sistema de pontuação:</h6>
-                    <ul class="mb-3">
-                        <li>O primeiro a pagar recebe <span class="fw-bold">{{ config_pontuacao.pontuacao_primeiro_colocado }}</span> pontos;</li>
-                        <li>Cada posição seguinte recebe menos <span class="fw-bold">{{ config_pontuacao.reducao_pontos_por_posicao }}</span> pontos;</li>
-                        <li>A pontuação mínima é de <span class="fw-bold">{{ config_pontuacao.pontuacao_minima }}</span> pontos.</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-
-        <div class="card mb-4">
-            <div class="card-header bg-gradient-primary text-white">
-                <div class="d-flex align-items-center">
-                    <div class="dashboard-icon-header me-2">
-                        <i class="fas fa-info-circle"></i>
-                    </div>
-                    <h5 class="mb-0">Informações do Sistema</h5>
-                </div>
-            </div>
-            <div class="card-body">
-                <div class="alert alert-info mb-3">
-                    <h5 class="d-flex align-items-center">
-                        <i class="fas fa-coffee me-2"></i>
-                        Copa do Laboratório
-                    </h5>
-                    <p class="mb-0">Sistema de gestão de pagamentos para a copa do laboratório.</p>
-                </div>
-                
-                <h6 class="mb-3 fw-bold">Valores por Categoria:</h6>
-                <ul class="info-list">
-                    {% for categoria in categorias %}
-                    <li class="info-list-item">
-                        <span>{{ categoria.value }}</span>
-                        <span class="badge bg-primary rounded-pill px-3">R$ {{ "%.2f"|format(valores_categoria[categoria]) }}</span>
-                    </li>
-                    {% endfor %}
-                </ul>
             </div>
         </div>
     </div>
